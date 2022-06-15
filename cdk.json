@@ -27,6 +27,50 @@
     "@aws-cdk/core:target-partitions": [
       "aws",
       "aws-cn"
-    ]
+    ],
+    "dev": {
+      "env": {
+          "name": "dev"
+      },
+      "eks": {
+          "name": "app_eks",
+          "instance_type": "t3.large",
+          "addon_enable_cwmetrics": true,
+          "addon_enable_cwlogs": true,
+          "addon_enable_awslbclt": true,
+          "addon_enable_extdns": true
+      },
+      "vpc": {
+          "name": "gitops_pipeline"
+      },
+      "flask_backend": {
+          "eks_cluster": "app_eks",
+          "namespace": "flask-backend",
+          "service_account": "flask-backend",
+          "dynamodb_table": "messages",
+          "dynamodb_partition": "uuid"
+      }
+    },
+    "gitops": {
+      "env": {
+          "name": "gitops"
+      },
+      "eks": {
+          "name": "gitops_eks",
+          "instance_type": "t3.large",
+          "addon_enable_cwmetrics": true,
+          "addon_enable_cwlogs": true,
+          "addon_enable_awslbclt": true,
+          "addon_enable_extdns": true,
+          "service_argocd": true,
+          "service_argocd_domain": "yamazon.tk",
+          "service_argocd_subdomain": "argocd.yamazon.tk",
+          "service_argocd_cert_arn": "arn:aws:acm:ap-northeast-1:338456725408:certificate/124163b3-7ec8-4cf7-af6e-f05d8bc6ce8f",
+          "service_argocd_secret_name": "ArgocdServerAdminPassword"
+      },
+      "vpc": {
+          "name": "gitops_pipeline"
+      }
+    }
   }
 }

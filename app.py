@@ -1,28 +1,41 @@
 #!/usr/bin/env python3
 import os
-
 import aws_cdk as cdk
-
-from handson_eks_eks_gitops_with_argocd.handson_eks_eks_gitops_with_argocd_stack import HandsonEksEksGitopsWithArgocdStack
-
+from _stacks.eks_pipeline import EksClusterStack
+from _stacks.flask_app_stack import FlaskBackendAppStack
 
 app = cdk.App()
-HandsonEksEksGitopsWithArgocdStack(app, "HandsonEksEksGitopsWithArgocdStack",
-    # If you don't specify 'env', this stack will be environment-agnostic.
-    # Account/Region-dependent features and context lookups will not work,
-    # but a single synthesized template can be deployed anywhere.
 
-    # Uncomment the next line to specialize this stack for the AWS Account
-    # and Region that are implied by the current CLI configuration.
-
-    #env=cdk.Environment(account=os.getenv('CDK_DEFAULT_ACCOUNT'), region=os.getenv('CDK_DEFAULT_REGION')),
-
-    # Uncomment the next line if you know exactly what Account and Region you
-    # want to deploy the stack to. */
-
-    #env=cdk.Environment(account='123456789012', region='us-east-1'),
-
-    # For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html
+try:
+    env = cdk.Environment(
+        account=os.environ.get("CDK_DEPLOY_ACCOUNT", os.environ["CDK_DEFAULT_ACCOUNT"]),
+        region=os.environ.get("CDK_DEPLOY_REGION", os.environ["CDK_DEFAULT_REGION"]),
     )
+except KeyError as e:
+    # Todo: 削除すること
+    # todo: The following is for debugging of debugger
+    env = cdk.Environment(
+        account='338456725408',
+        region='ap-northeast-1',
+    )
+
+eks_cluster_stack_gitops = EksClusterStack(
+    app,
+    "EksGitopsStack",
+    sys_env='gitops',
+    env=env)  # cdk.Environmentにすること
+
+eks_cluster_stack_dev = EksClusterStack(
+    app,
+    "EksAppStack",
+    sys_env='dev',
+    env=env)  # cdk.Environmentにすること
+
+flask_app_stack_dev = FlaskBackendAppStack(
+    app,
+    "FlaskBackendAppStack",
+    sys_env='dev',
+    env=env)
+flask_app_stack_dev.add_dependency(eks_cluster_stack_dev)
 
 app.synth()
