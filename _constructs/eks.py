@@ -3,15 +3,12 @@ from constructs import Construct
 from aws_cdk import aws_eks
 from aws_cdk import aws_ec2
 from aws_cdk import aws_iam
-from aws_cdk import Tags
-import boto3
 from util.configure.config import Config
 from _constructs.eks_addon_awslbctl import AwsLoadBalancerController
 from _constructs.eks_addon_extdns import  ExternalDnsController
 from _constructs.eks_addon_cwmetrics import CloudWatchContainerInsightsMetrics
 from _constructs.eks_addon_cwlogs import CloudWatchContainerInsightsLogs
 from _constructs.eks_service_argocd import ArgoCd
-# from _constructs.namespase_and_service_account.ns_and_sa import NamespaceAndServiceAccount
 
 
 class EksCluster(Construct):
@@ -26,9 +23,6 @@ class EksCluster(Construct):
 
     def provisioning(self):
         vpc = aws_ec2.Vpc.from_lookup(self, 'VPC1', vpc_name=self.config.vpc.name)
-        # 注意: from_lookup()で参照したvpcのsubnetにtagが付けられなかった。
-        # VPC作成CDKプロジェクトでTagを設定する。
-        # self.tag_subnet_for_eks_cluster(vpc)
 
         _owner_role = aws_iam.Role(
             scope=self,
@@ -144,44 +138,3 @@ class EksCluster(Construct):
                 config=self.config
             )
             dependency = argocd.deploy(dependency)
-
-    # def add_ns_and_sa(self):
-    #
-    #     print(f'--------Add NS and SA------{self.config.env.name}-----------------')
-    #     # Todo: とりあえず if文を変える
-    #     if self.config.flask_backend:
-    #         ns_sa = NamespaceAndServiceAccount(
-    #             self,
-    #             'NamespaceAndServiceAccount',
-    #             region=self.config.aws_env.region,
-    #             cluster=self.cluster,
-    #             config=self.config
-    #         )
-    #         ns_sa.flask_backend_ns_sa()
-
-
-
-    # def tag_subnet_for_eks_cluster(self, vpc):
-    #     # 注意: from_lookup()で参照したvpcのsubnetにtagが付けられなかった。
-    #     # VPCに複数のEKS Clusterがある場合、Tag:"kubernetes.io/cluster/cluster-name": "shared"が必要
-    #     # PrivateSubnetにはTag "kubernetes.io/role/internal-elb": '1'
-    #     # PublicSubnetには"kubernetes.io/role/elb": '1'
-    #     # https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/network_reqs.html
-    #     # https://docs.aws.amazon.com/ja_jp/eks/latest/userguide/alb-ingress.html
-    #
-    #     print('-----------subnet tagging-----------------------')
-    #     print(f'eks cluster name: {self.config.eks.name}')
-    #
-    #     self.tag_all_subnets(vpc.public_subnets, 'kubernetes.io/role/elb', '1')
-    #     self.tag_all_subnets(vpc.public_subnets, f'kubernetes.io/cluster/{self.config.eks.name}', 'shared')
-    #     self.tag_all_subnets(vpc.private_subnets, 'kubernetes.io/role/internal-elb', '1')
-    #     self.tag_all_subnets(vpc.private_subnets, f'kubernetes.io/cluster/{self.config.eks.name}', 'shared')
-    #
-    # @staticmethod
-    # def tag_all_subnets(subnets, tag_name, tag_value):
-    #     for subnet in subnets:
-    #         Tags.of(subnet).add(tag_name, tag_value)
-
-
-
-

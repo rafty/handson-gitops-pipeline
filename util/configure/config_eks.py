@@ -9,7 +9,6 @@ class ConfigEks:
 
     @property
     def instance_type(self):
-        print(f"InstanceType: {self.config['instance_type']}")
         return self.config['instance_type']
 
     @property

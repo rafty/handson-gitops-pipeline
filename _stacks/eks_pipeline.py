@@ -16,17 +16,12 @@ class EksClusterStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         self.check_parameter(kwargs)
-        # ---------------------------------------------------------
-        # Stackの設定値をConfigに保存する。
-        # _env = kwargs['env']
-        # aws_env = {'region': _env.region, 'account': _env.account}
-        # self.config = Config(self, 'Config', sys_env, aws_env)
+        # Stackの設定値をConfigに保存
         self.config = Config(self, 'Config', sys_env=sys_env, _aws_env=kwargs.get('env'))
 
-        # VPCは事前に作成してる。既存VPC名はCDK.jsonにある。
+        # 事前に作成したVPCを利用
         _eks_cluster = EksCluster(self, 'EksCluster', config=self.config)
         _eks_cluster.provisioning()
-        # _eks_cluster.add_ns_and_sa()
 
     @staticmethod
     def check_parameter(key):

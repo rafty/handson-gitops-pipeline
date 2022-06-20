@@ -92,18 +92,6 @@ class ArgoCd(Construct):
     #  Must be set annotations
     # ------------------------------------------------------------------
     def add_alb_ingress_to_argocd(self, dependency: Construct) -> Construct:
-        # _cluster = self.cluster
-        # _namespace = self.namespace
-        # _cert_arn = self.config.eks.service_argocd_cert_arn
-        # _sub_domain = self.config.eks.service_argocd_subdomain
-
-        # print('#-----------Ingress---------------------------\n')
-        # print(f'cluster: {self.cluster}')
-        # print(f'ingress_name: {self.ingress_name}')
-        # print(f'namespace: {self.namespace}')
-        # print(f'labels: {self.labels}')
-        # print(f'service_argocd_cert_arn: {self.config.eks.service_argocd_cert_arn}')
-        # print(f'service_argocd_subdomain: {self.config.eks.service_argocd_subdomain}')
 
         ingress_argocd_server_manifest = {
             'apiVersion': 'networking.k8s.io/v1',

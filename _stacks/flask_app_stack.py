@@ -8,7 +8,7 @@ from aws_cdk import aws_iam
 from util.configure.config import Config
 
 
-class FlaskBackendAppStack(Stack):
+class FlaskAppStack(Stack):
 
     def __init__(
             self,
@@ -25,31 +25,31 @@ class FlaskBackendAppStack(Stack):
         self.dynamodb = self.create_dynamodb()
 
     def add_namespace_and_service_account(self):
-        # flask-backendがDynamoDBにアクセスできるServiceAccountを追加
+        # flask-appがDynamoDBにアクセスできるServiceAccountを追加
         # Service Accountに必要なNamespaceを登録
-        # flask-frontendのnamespaceは作成せずargocdに作成してもらうこととする。
+        # flask-appのnamespaceは作成せずargocdに作成してもらうこととする。
 
-        # Namespace of flask-backend
+        # Namespace of flask-app
         namespace_manifest = {
             'apiVersion': 'v1',
             'kind': 'Namespace',
             'metadata': {
-                'name': self.config.flask_backend.namespace,
+                'name': self.config.flask_app.namespace,
                 'labels': {
-                    'name': self.config.flask_backend.namespace
+                    'name': self.config.flask_app.namespace
                 }
             }
         }
-        namespace = self.cluster.add_manifest('FlaskBackendNamespace',
+        namespace = self.cluster.add_manifest('FlaskAppNamespace',
                                               namespace_manifest)
 
-        # Service Account for flask-backend
-        backend_sa = self.cluster.add_service_account(
-            'FlaskBackendSA',  # この名前がIAM Role名に付加される
-            name=self.config.flask_backend.service_account,  # flask_backend
-            namespace=self.config.flask_backend.namespace  # flask-backend
+        # Service Account for flask-app
+        flask_app_sa = self.cluster.add_service_account(
+            'FlaskAppSA',  # この名前がIAM Role名に付加される
+            name=self.config.flask_app.service_account,
+            namespace=self.config.flask_app.namespace
         )
-        backend_sa.node.add_dependency(namespace)
+        flask_app_sa.node.add_dependency(namespace)
 
         dynamodb_full_access_policy_statements = [
             {
@@ -83,7 +83,7 @@ class FlaskBackendAppStack(Stack):
         ]
 
         for statement in dynamodb_full_access_policy_statements:
-            backend_sa.add_to_principal_policy(
+            flask_app_sa.add_to_principal_policy(
                 aws_iam.PolicyStatement.from_json(statement)
             )
 
@@ -124,9 +124,9 @@ class FlaskBackendAppStack(Stack):
         _dynamodb = aws_dynamodb.Table(
             self,
             id='DynamoDbTable',
-            table_name=self.config.flask_backend.dynamodb_table,
+            table_name=self.config.flask_app.dynamodb_table,
             partition_key=aws_dynamodb.Attribute(
-                name=self.config.flask_backend.dynamodb_partition,
+                name=self.config.flask_app.dynamodb_partition,
                 type=aws_dynamodb.AttributeType.STRING),
             read_capacity=1,
             write_capacity=1,

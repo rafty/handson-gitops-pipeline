@@ -43,10 +43,10 @@
       "vpc": {
           "name": "gitops_pipeline"
       },
-      "flask_backend": {
+      "flask_app": {
           "eks_cluster": "app_eks",
-          "namespace": "flask-backend",
-          "service_account": "flask-backend",
+          "namespace": "flask-app",
+          "service_account": "flask-app",
           "dynamodb_table": "messages",
           "dynamodb_partition": "uuid"
       }
