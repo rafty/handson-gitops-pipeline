@@ -52,6 +52,8 @@
           "eks_cluster": "app-dev-1",
           "namespace": "flask-app",
           "service_account": "flask-app",
+          "repo": "https://github.com/rafty/handson-eks_app_manifest.git",
+          "repo_path": "flask/dev/",
           "dynamodb_table": "messages-dev",
           "dynamodb_partition": "uuid"
       }
@@ -80,6 +82,8 @@
           "eks_cluster": "app-dev-2",
           "namespace": "flask-app",
           "service_account": "flask-app",
+          "repo": "https://github.com/rafty/handson-eks_app_manifest.git",
+          "repo_path": "flask/dev/",
           "dynamodb_table": "messages-dev",
           "dynamodb_partition": "uuid"
       }
@@ -108,6 +112,8 @@
           "eks_cluster": "app-prd-1",
           "namespace": "flask-app",
           "service_account": "flask-app",
+          "repo": "https://github.com/rafty/handson-eks_app_manifest.git",
+          "repo_path": "flask/prd/",
           "dynamodb_table": "messages-prd",
           "dynamodb_partition": "uuid"
       }

@@ -20,14 +20,10 @@ class FlaskAppStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         self.config = Config(self, 'Config', sys_env=sys_env, _aws_env=kwargs.get('env'))
-        # self.vpc = self.get_existing_vpc()
         self.vpc = self.get_vpc_cross_stack()
-        # self.cluster = self.get_existing_cluster()
         self.cluster = self.get_cluster_cross_stack()
 
-        # self.namespace_and_service_account()  # Todo: move to self.create_dynamodb() 2022.06.28
         self.dynamodb = self.create_dynamodb()
-
         self.argocd_application()
 
     def get_existing_vpc(self) -> aws_ec2.Vpc:
@@ -190,13 +186,53 @@ class FlaskAppStack(Stack):
                 aws_iam.PolicyStatement.from_json(statement)
             )
 
-    # Todo: add 2022.06.28
     def argocd_application(self):
-        # ManifestでArgo CDにApplicationを追加する
-        # 複数のApplicationを追加する場合、Application Manifestに
-        # マルチドキュメントで記載する。
+        # Argo CD Applicationを作成する
 
-        with open('./argocd_app_yaml/argocd-applications.yaml', 'r') as f:
-            _yaml_docs = list(yaml.load_all(f, Loader=yaml.FullLoader))
-        for manifest in _yaml_docs:
-            self.cluster.add_manifest(manifest['metadata']['name'], manifest)
+        # with open('./argocd_app/argocd-app-dev.yaml', 'r') as f:
+        #     _yaml_docs = list(yaml.load_all(f, Loader=yaml.FullLoader))
+        # for manifest in _yaml_docs:
+        #     self.cluster.add_manifest(manifest['metadata']['name'], manifest)
+
+        argocd_app_manifest = self.argocd_application_manifest()
+        self.cluster.add_manifest(
+                  argocd_app_manifest['metadata']['name'],
+                  argocd_app_manifest)
+
+    def argocd_application_manifest(self):
+        # 複数アプリケーション対応
+        argocd_namespace = 'argocd'
+        # application_name = 'flask-app'
+        application_name = self.config.flask_app.namespace
+        # application_namespace = 'flask-app'
+        application_namespace = self.config.flask_app.namespace
+        # repo = 'https://github.com/rafty/handson-eks_app_manifest.git'
+        repo = self.config.flask_app.repo
+        # repo_path = 'flask/prd/'
+        repo_path = self.config.flask_app.repo_path
+
+        flask_app_manifest = {
+            'apiVersion': 'argoproj.io/v1alpha1',
+            'kind': 'Application',
+            'metadata': {
+                'name': application_name,
+                'namespace': argocd_namespace,
+            },
+            'spec': {
+                'project': 'default',
+                'source': {
+                    'repoURL': repo,
+                    'targetRevision': 'HEAD',
+                    'path': repo_path
+                },
+                'destination': {
+                    'server': 'https://kubernetes.default.svc',  #  ArgoCDが動作するClusterにAppをDeployする際のurl
+                    'namespace': application_namespace
+                },
+                'syncPolicy': {
+                    'automated': {}
+                }
+            }
+        }
+
+        return flask_app_manifest

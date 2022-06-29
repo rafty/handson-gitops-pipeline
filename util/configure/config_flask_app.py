@@ -16,6 +16,14 @@ class ConfigFlaskApp:
         return self.config['service_account']
 
     @property
+    def repo(self):
+        return self.config['repo']
+
+    @property
+    def repo_path(self):
+        return self.config['repo_path']
+
+    @property
     def dynamodb_table(self):
         return self.config.get('dynamodb_table')
 
