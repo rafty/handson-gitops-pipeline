@@ -63,7 +63,7 @@ class ArgoCd(Construct):
         # ArgocdServerAdminPassword must be Bcrypt hashed password.
         # https://artifacthub.io/packages/helm/argo/argo-cd
         # ------------------------------------------------------
-        _secret_name = self.config.eks.service_argocd_secret_name
+        _secret_name = self.config.eks.addon_argocd_secret_name
         secret_string = self.get_asm_value_by_awssdk(_secret_name)
         try:
             pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
@@ -109,14 +109,14 @@ class ArgoCd(Construct):
                     'alb.ingress.kubernetes.io/healthcheck-protocol': 'HTTPS',
                     'alb.ingress.kubernetes.io/backend-protocol': 'HTTPS',
                     'alb.ingress.kubernetes.io/actions.ssl-redirect': '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}',
-                    'alb.ingress.kubernetes.io/certificate-arn': self.config.eks.service_argocd_cert_arn,
-                    'external-dns.alpha.kubernetes.io/hostname': self.config.eks.service_argocd_subdomain,
+                    'alb.ingress.kubernetes.io/certificate-arn': self.config.eks.addon_argocd_cert_arn,
+                    'external-dns.alpha.kubernetes.io/hostname': self.config.eks.addon_argocd_subdomain,
                 },
             },
             'spec': {
                 'rules': [
                     {
-                        'host': self.config.eks.service_argocd_subdomain,
+                        'host': self.config.eks.addon_argocd_subdomain,
                         'http': {
                             'paths': [
                                 {

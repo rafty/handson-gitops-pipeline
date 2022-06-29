@@ -28,48 +28,88 @@
       "aws",
       "aws-cn"
     ],
-    "dev": {
+    "dev-1": {
+      "vpc": {
+          "name": "app-dev"
+      },
       "env": {
-          "name": "dev"
+          "name": "dev-1"
       },
       "eks": {
-          "name": "app_eks",
+          "cluster_name": "app-dev-1",
           "instance_type": "t3.large",
-          "addon_enable_cwmetrics": true,
-          "addon_enable_cwlogs": true,
-          "addon_enable_awslbclt": true,
-          "addon_enable_extdns": true
-      },
-      "vpc": {
-          "name": "gitops_pipeline"
+          "addon_cwmetrics_enable": true,
+          "addon_cwlogs_enable": true,
+          "addon_awslbclt_enable": true,
+          "addon_extdns_enable": true,
+          "addon_argocd_enable": true,
+          "addon_argocd_domain": "yamazon.tk",
+          "addon_argocd_subdomain": "argocd-dev-1.yamazon.tk",
+          "addon_argocd_cert_arn": "arn:aws:acm:ap-northeast-1:338456725408:certificate/124163b3-7ec8-4cf7-af6e-f05d8bc6ce8f",
+          "addon_argocd_secret_name": "ArgocdServerAdminPassword"
       },
       "flask_app": {
-          "eks_cluster": "app_eks",
+          "eks_cluster": "app-dev-1",
           "namespace": "flask-app",
           "service_account": "flask-app",
-          "dynamodb_table": "messages",
+          "dynamodb_table": "messages-dev",
           "dynamodb_partition": "uuid"
       }
     },
-    "gitops": {
+    "dev-2": {
+      "vpc": {
+          "name": "app-dev"
+      },
       "env": {
-          "name": "gitops"
+          "name": "dev-2"
       },
       "eks": {
-          "name": "gitops_eks",
+          "cluster_name": "app-dev-2",
           "instance_type": "t3.large",
-          "addon_enable_cwmetrics": true,
-          "addon_enable_cwlogs": true,
-          "addon_enable_awslbclt": true,
-          "addon_enable_extdns": true,
-          "service_argocd": true,
-          "service_argocd_domain": "yamazon.tk",
-          "service_argocd_subdomain": "argocd.yamazon.tk",
-          "service_argocd_cert_arn": "arn:aws:acm:ap-northeast-1:338456725408:certificate/124163b3-7ec8-4cf7-af6e-f05d8bc6ce8f",
-          "service_argocd_secret_name": "ArgocdServerAdminPassword"
+          "addon_cwmetrics_enable": true,
+          "addon_cwlogs_enable": true,
+          "addon_awslbclt_enable": true,
+          "addon_extdns_enable": true,
+          "addon_argocd_enable": true,
+          "addon_argocd_domain": "yamazon.tk",
+          "addon_argocd_subdomain": "argocd-dev-2.yamazon.tk",
+          "addon_argocd_cert_arn": "arn:aws:acm:ap-northeast-1:338456725408:certificate/124163b3-7ec8-4cf7-af6e-f05d8bc6ce8f",
+          "addon_argocd_secret_name": "ArgocdServerAdminPassword"
       },
+      "flask_app": {
+          "eks_cluster": "app-dev-2",
+          "namespace": "flask-app",
+          "service_account": "flask-app",
+          "dynamodb_table": "messages-dev",
+          "dynamodb_partition": "uuid"
+      }
+    },
+    "prd-1": {
       "vpc": {
-          "name": "gitops_pipeline"
+          "name": "app-prd"
+      },
+      "env": {
+          "name": "prd-1"
+      },
+      "eks": {
+          "cluster_name": "app-prd-1",
+          "instance_type": "t3.large",
+          "addon_cwmetrics_enable": true,
+          "addon_cwlogs_enable": true,
+          "addon_awslbclt_enable": true,
+          "addon_extdns_enable": true,
+          "addon_argocd_enable": true,
+          "addon_argocd_domain": "yamazon.tk",
+          "addon_argocd_subdomain": "argocd-prd-1.yamazon.tk",
+          "addon_argocd_cert_arn": "arn:aws:acm:ap-northeast-1:338456725408:certificate/124163b3-7ec8-4cf7-af6e-f05d8bc6ce8f",
+          "addon_argocd_secret_name": "ArgocdServerAdminPassword"
+      },
+      "flask_app": {
+          "eks_cluster": "app-prd-1",
+          "namespace": "flask-app",
+          "service_account": "flask-app",
+          "dynamodb_table": "messages-prd",
+          "dynamodb_partition": "uuid"
       }
     }
   }

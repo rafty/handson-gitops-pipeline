@@ -1,4 +1,4 @@
-# ArgoCD ApplicationをManifestで作成する際に使用する。
+# Manifest for ArgoCD Application
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -11,7 +11,7 @@ spec:
     targetRevision: HEAD
     path: flask/dev/
   destination:
-    server: https://4A44592A7DAC736CC7587E9CCEC7DA3C.gr7.ap-northeast-1.eks.amazonaws.com
+    server: https://kubernetes.default.svc  #  ArgoCDが動作するClusterのアドレス
     namespace: flask-app
   syncPolicy:
     automated: {}
