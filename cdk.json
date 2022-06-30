@@ -35,7 +35,8 @@
       "github_source_repository_name": "handson-eks_front_app",
       "github_owner": "rafty",
       "github_target_repository": "https://github.com/rafty/handson-eks_app_manifest",
-      "github_target_manifest": "/flask/dev/flask-dep.yaml",
+      "github_target_manifest_dev": "/flask/dev/flask-dep.yaml",
+      "github_target_manifest_prd": "/flask/prd/flask-dep.yaml",
       "ecr_repository_name": "flask"
     },
     "dev-1": {

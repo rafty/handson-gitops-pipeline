@@ -28,8 +28,12 @@ class ConfigCodePipeline:
         return self.config.get('github_target_repository')
 
     @property
-    def github_target_manifest(self):
-        return self.config.get('github_target_manifest')
+    def github_target_manifest_dev(self):
+        return self.config.get('github_target_manifest_dev')
+
+    @property
+    def github_target_manifest_prd(self):
+        return self.config.get('github_target_manifest_prd')
 
     @property
     def ecr_repository_name(self):
