@@ -68,7 +68,7 @@ class EksCluster(Construct):
                 'AwsLbController',
                 region=self.config.aws_env.region,
                 cluster=self.cluster,
-                vpc_id=self.vpc.vpc_id)  # Todo: vpc_idが取れてるか確認すること
+                vpc_id=self.vpc.vpc_id)
             dependency = alb_ctl.deploy(dependency)
 
         if self.config.eks.addon_extdns_enable:
@@ -132,27 +132,6 @@ class EksCluster(Construct):
             )
         )
         return vpc
-
-    # Todo これはうまくいった！！
-    # def get_vpc_cross_stack(self):
-    #     # VPC Cross Stack 参照 - from_vpc_attributes()
-    #     vpc_id: str = aws_cdk.Fn.import_value(f'VpcId-{self.config.vpc.name}')  # VpcId-app-dev
-    #     availability_zones_string: str = aws_cdk.Fn.import_value(f'AZs-{self.config.vpc.name}')
-    #     public_subnets_string: str = aws_cdk.Fn.import_value(
-    #         f'PublicSubnets-{self.config.vpc.name}')
-    #     private_subnets_string: str = aws_cdk.Fn.import_value(
-    #         f'PrivateSubnets-{self.config.vpc.name}')
-    #
-    #     # Todo: from_vpc_attributesを使用する際、３つのAZがあることを前提とする
-    #     vpc = aws_ec2.Vpc.from_vpc_attributes(
-    #         self,
-    #         'VpcId',
-    #         vpc_id=vpc_id,
-    #         availability_zones=aws_cdk.Fn.split(',', availability_zones_string, 3),
-    #         public_subnet_ids=aws_cdk.Fn.split(',', public_subnets_string, 3),
-    #         private_subnet_ids=aws_cdk.Fn.split(',', private_subnets_string, 3)
-    #     )
-    #     return vpc
 
     def get_vpc_id_cross_stack(self):
         vpc_id: str = aws_cdk.Fn.import_value(f'VpcId-{self.config.vpc.name}')  # VpcId-app-dev

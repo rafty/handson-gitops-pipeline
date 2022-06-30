@@ -28,6 +28,16 @@
       "aws",
       "aws-cn"
     ],
+    "codepipeline": {
+      "pipeline_name": "flask_codepipeline",
+      "github_token_name": "GithubPersonalAccessToken",
+      "github_source_repository": "https://github.com/rafty/handson-eks_front_app",
+      "github_source_repository_name": "handson-eks_front_app",
+      "github_owner": "rafty",
+      "github_target_repository": "https://github.com/rafty/handson-eks_app_manifest",
+      "github_target_manifest": "/flask/dev/flask-dep.yaml",
+      "ecr_repository_name": "flask"
+    },
     "dev-1": {
       "vpc": {
           "name": "app-dev"

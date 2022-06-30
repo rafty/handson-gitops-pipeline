@@ -5,6 +5,7 @@ from util.configure.config_vpc import ConfigVpc
 from util.configure.config_eks import ConfigEks
 from util.configure.config_env import ConfigEnv
 from util.configure.config_flask_app import ConfigFlaskApp
+from util.configure.config_codepipeline import ConfigCodePipeline
 
 
 class Config(Construct):
@@ -16,13 +17,20 @@ class Config(Construct):
     def __init__(self, scope: Construct, id: str, sys_env: str, _aws_env: aws_cdk.Environment) -> None:
         super().__init__(scope, id)
 
-        self.sys_env = sys_env  # dev, stg, prd, ops, gitops
+        if sys_env is not None:  # eks clusterのconfig
+            self.sys_env = sys_env  # dev-1, stg-1, prd-1
+            self.env_config = self.node.try_get_context(key=sys_env)  # from cdk.json
+
         self._aws_env: aws_cdk.Environment = _aws_env  # region, account
-        self.env_config = self.node.try_get_context(key=sys_env)  # from cdk.json
+        self.codepipeline_config = self.node.try_get_context(key='codepipeline')  # from cdk.json
 
     @property
     def aws_env(self):
         return ConfigAwsEnv(self._aws_env)
+
+    @property
+    def codepipeline(self):
+        return ConfigCodePipeline(self.codepipeline_config)
 
     @property
     def env(self):
@@ -47,3 +55,4 @@ class Config(Construct):
         if not self.env_config.get('flask_app'):
             return None
         return ConfigFlaskApp(self.env_config['flask_app'])
+

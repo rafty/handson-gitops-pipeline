@@ -10,12 +10,10 @@ class ConfigAwsEnv:
 
     @property
     def region(self):
-        # return self._config_aws_env.get('region')
         return self._config_aws_env.region
 
     @property
     def account(self):
-        # return self._config_aws_env.get('account')
         return self._config_aws_env.account
 
     @staticmethod

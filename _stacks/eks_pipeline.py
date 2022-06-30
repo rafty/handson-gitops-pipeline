@@ -11,7 +11,7 @@ class EksClusterStack(Stack):
             self,
             scope: Construct,
             construct_id: str,
-            sys_env: str,
+            sys_env: str,  # dev-1, dev-2, prd-1 ...
             **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
@@ -19,7 +19,6 @@ class EksClusterStack(Stack):
         # Stackの設定値をConfigに保存
         self.config = Config(self, 'Config', sys_env=sys_env, _aws_env=kwargs.get('env'))
 
-        # 事前に作成したVPCを利用
         _eks_cluster = EksCluster(self, 'EksCluster', config=self.config)
         _eks_cluster.provisioning()
 
