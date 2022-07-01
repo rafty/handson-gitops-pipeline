@@ -23,7 +23,8 @@ class FlaskAppStack(Stack):
         self.vpc = self.get_vpc_cross_stack()
         self.cluster = self.get_cluster_cross_stack()
 
-        self.dynamodb = self.create_dynamodb()
+        # self.dynamodb = self.create_dynamodb()
+        self.namespace_and_service_account_for_dynamodb()
         self.argocd_application()
 
     def get_existing_vpc(self) -> aws_ec2.Vpc:
@@ -98,29 +99,29 @@ class FlaskAppStack(Stack):
         )
         return cluster
 
-    def create_dynamodb(self) -> aws_dynamodb.Table:
-        # --------------------------------------------------------------
-        #
-        # DynamoDB
-        #
-        # --------------------------------------------------------------
+    # def create_dynamodb(self) -> aws_dynamodb.Table:
+    #     # --------------------------------------------------------------
+    #     #
+    #     # DynamoDB
+    #     #
+    #     # --------------------------------------------------------------
+    #
+    #     self.namespace_and_service_account()
+    #
+    #     _dynamodb = aws_dynamodb.Table(
+    #         self,
+    #         id='DynamoDbTable',
+    #         table_name=self.config.flask_app.dynamodb_table,
+    #         partition_key=aws_dynamodb.Attribute(
+    #             name=self.config.flask_app.dynamodb_partition,
+    #             type=aws_dynamodb.AttributeType.STRING),
+    #         read_capacity=1,
+    #         write_capacity=1,
+    #         removal_policy=aws_cdk.RemovalPolicy.DESTROY
+    #     )
+    #     return _dynamodb
 
-        self.namespace_and_service_account()
-
-        _dynamodb = aws_dynamodb.Table(
-            self,
-            id='DynamoDbTable',
-            table_name=self.config.flask_app.dynamodb_table,
-            partition_key=aws_dynamodb.Attribute(
-                name=self.config.flask_app.dynamodb_partition,
-                type=aws_dynamodb.AttributeType.STRING),
-            read_capacity=1,
-            write_capacity=1,
-            removal_policy=aws_cdk.RemovalPolicy.DESTROY
-        )
-        return _dynamodb
-
-    def namespace_and_service_account(self):
+    def namespace_and_service_account_for_dynamodb(self):
         # flask-appがDynamoDBにアクセスできるServiceAccountを追加
         # Service Accountに必要なNamespaceを登録
         # namespace, service_accountはmanifestと一致すること
@@ -136,8 +137,7 @@ class FlaskAppStack(Stack):
                 }
             }
         }
-        namespace = self.cluster.add_manifest('FlaskAppNamespace',
-                                              namespace_manifest)
+        namespace = self.cluster.add_manifest('FlaskAppNamespace', namespace_manifest)
 
         # Service Account for flask-app
         flask_app_sa = self.cluster.add_service_account(
@@ -175,9 +175,10 @@ class FlaskAppStack(Stack):
                 ],
                 # "Resource": [self.dynamodb.table_arn]
                 # "Resource": ["arn:aws:dynamodb:*:*:table/messages"]
-                "Resource": [
-                    f"arn:aws:dynamodb:*:*:table/{self.config.flask_app.dynamodb_table}"
-                ]
+                "Resource": ["arn:aws:dynamodb:*:*:table/messages-*"]
+                # "Resource": [
+                #     f"arn:aws:dynamodb:*:*:table/{self.config.flask_app.dynamodb_table}"
+                # ]
             }
         ]
 
