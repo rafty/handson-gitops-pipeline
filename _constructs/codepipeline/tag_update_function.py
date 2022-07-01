@@ -2,7 +2,6 @@ import os
 import subprocess
 import aws_cdk
 from constructs import Construct
-from aws_cdk import aws_codepipeline_actions
 from aws_cdk import aws_lambda
 from aws_cdk import aws_iam
 from util.configure.config import Config
@@ -46,7 +45,8 @@ class TagUpdateFunction(Construct):
             function_name='GithubManifestTagUpdate',
             handler='function.lambda_handler',
             runtime=aws_lambda.Runtime.PYTHON_3_8,
-            code=aws_lambda.Code.from_asset('./functions/manifest_update'),
+            # code=aws_lambda.Code.from_asset('./functions/manifest_update'),
+            code=aws_lambda.Code.from_asset('./_constructs/codepipeline/functions/manifest_update'),
             role=lambda_role,
             layers=[powertools_layer, git_layer],
             environment={
@@ -83,7 +83,8 @@ class TagUpdateFunction(Construct):
         return lambda_role
 
     def create_lambda_layer(self) -> aws_lambda.LayerVersion:
-        requirements_file = 'layers/git_command/requirements.txt'
+        # requirements_file = 'layers/git_command/requirements.txt'
+        requirements_file = './_constructs/codepipeline/layers/git_command/requirements.txt'
         output_dir = "layer_pip/"
 
         # Install requirements for layer in the output_dir

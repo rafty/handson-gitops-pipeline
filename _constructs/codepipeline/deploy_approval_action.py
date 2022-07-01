@@ -1,14 +1,9 @@
-import os
-import subprocess
-import aws_cdk
 from constructs import Construct
 from aws_cdk import aws_codepipeline_actions
-from aws_cdk import aws_lambda
-from aws_cdk import aws_iam
 from util.configure.config import Config
 
 
-class DeployApprovalStage(Construct):
+class DeployApprovalAction(Construct):
     # ----------------------------------------------------------
     # Stage - Manifest Tag Update (GitHub)
     # ----------------------------------------------------------
@@ -19,9 +14,8 @@ class DeployApprovalStage(Construct):
         self.config = config
         self.stage = stage
 
-    def deploy_approval_action(self) -> aws_codepipeline_actions.ManualApprovalAction:
+    def create(self) -> aws_codepipeline_actions.ManualApprovalAction:
         # SNS Topic -> Lambda　でアクションや通知をおこなってもよい。
-
 
         action = aws_codepipeline_actions.ManualApprovalAction(
             action_name=f'DeployApproval-{self.stage}',

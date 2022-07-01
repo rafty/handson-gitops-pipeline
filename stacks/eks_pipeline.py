@@ -2,7 +2,7 @@ import aws_cdk
 from aws_cdk import Stack
 from constructs import Construct
 from util.configure.config import Config
-from _constructs.eks import EksCluster
+from _constructs.eks.eks import EksCluster
 
 
 class EksClusterStack(Stack):

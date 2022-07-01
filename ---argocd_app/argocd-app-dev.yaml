@@ -1,0 +1,17 @@
+## Manifest for ArgoCD Application
+#apiVersion: argoproj.io/v1alpha1
+#kind: Application
+#metadata:
+#  name: flask-app
+#  namespace: argocd
+#spec:
+#  project: default
+#  source:
+#    repoURL: https://github.com/rafty/handson-eks_app_manifest.git
+#    targetRevision: HEAD
+#    path: flask/dev/
+#  destination:
+#    server: https://kubernetes.default.svc  #  ArgoCDが動作するClusterのアドレス
+#    namespace: flask-app
+#  syncPolicy:
+#    automated: {}

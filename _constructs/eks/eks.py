@@ -4,11 +4,11 @@ from aws_cdk import aws_eks
 from aws_cdk import aws_ec2
 from aws_cdk import aws_iam
 from util.configure.config import Config
-from _constructs.eks_addon_awslbctl import AwsLoadBalancerController
-from _constructs.eks_addon_extdns import  ExternalDnsController
-from _constructs.eks_addon_cwmetrics import CloudWatchContainerInsightsMetrics
-from _constructs.eks_addon_cwlogs import CloudWatchContainerInsightsLogs
-from _constructs.eks_addon_argocd import ArgoCd
+from _constructs.eks.eks_addon_awslbctl import AwsLoadBalancerController
+from _constructs.eks.eks_addon_extdns import  ExternalDnsController
+from _constructs.eks.eks_addon_cwmetrics import CloudWatchContainerInsightsMetrics
+from _constructs.eks.eks_addon_cwlogs import CloudWatchContainerInsightsLogs
+from _constructs.eks.eks_addon_argocd import ArgoCd
 
 
 class EksCluster(Construct):
@@ -106,11 +106,12 @@ class EksCluster(Construct):
             dependency = argocd.deploy(dependency)
 
     def get_existing_vpc(self):
+        # 未使用
         vpc = aws_ec2.Vpc.from_lookup(self, 'VPC1', vpc_name=self.config.vpc.name)
         return vpc
 
     def get_vpc_cross_stack(self):
-        # Todo: from_vpc_attributesを使用する際、３つのAZがあることを前提とする
+        # from_vpc_attributesを使用する際、３つのAZがあることを前提としている。
         vpc = aws_ec2.Vpc.from_vpc_attributes(
             self,
             'VpcId',

@@ -81,7 +81,8 @@ class CloudWatchContainerInsightsMetrics(Construct):
         # Apply multiple yaml documents. - cloudwatch-agent.yaml
         # ----------------------------------------------------------
         cloudwatch_manifest = None
-        with open('./manifests/cloudwatch-agent.yaml', 'r') as f:
+        # with open('./manifests/cloudwatch-agent.yaml', 'r') as f:
+        with open('./_constructs/eks/manifests/cloudwatch-agent.yaml', 'r') as f:
             _yaml_docs = list(yaml.load_all(f, Loader=yaml.FullLoader))
         for i, _yaml_doc in enumerate(_yaml_docs, 1):
             cloudwatch_manifest = self.cluster.add_manifest(f'CWAgent{i}', _yaml_doc)
