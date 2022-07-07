@@ -25,7 +25,10 @@ class FlaskAppStack(Stack):
 
         # self.dynamodb = self.create_dynamodb()
         self.namespace_and_service_account_for_dynamodb()
-        self.argocd_application()
+        self.create_argocd_application()
+
+        # ALB TargetGroupのTargetにk8s service(flask-app)を登録する
+        self.application_target_group_binding()
 
     def get_existing_vpc(self) -> aws_ec2.Vpc:
         # Existing VPC取得する
@@ -175,7 +178,7 @@ class FlaskAppStack(Stack):
                 ],
                 # "Resource": [self.dynamodb.table_arn]
                 # "Resource": ["arn:aws:dynamodb:*:*:table/messages"]
-                "Resource": ["arn:aws:dynamodb:*:*:table/messages-*"]
+                "Resource": ["arn:aws:dynamodb:*:*:table/messages-*"]  # Todo: 動作確認
                 # "Resource": [
                 #     f"arn:aws:dynamodb:*:*:table/{self.config.flask_app.dynamodb_table}"
                 # ]
@@ -187,7 +190,7 @@ class FlaskAppStack(Stack):
                 aws_iam.PolicyStatement.from_json(statement)
             )
 
-    def argocd_application(self):
+    def create_argocd_application(self):
         # Argo CD Applicationを作成する
 
         # with open('./argocd_app/argocd-app-dev.yaml', 'r') as f:
@@ -201,16 +204,11 @@ class FlaskAppStack(Stack):
                   argocd_app_manifest)
 
     def argocd_application_manifest(self):
-        # 複数アプリケーション対応
         argocd_namespace = 'argocd'
-        # application_name = 'flask-app'
-        application_name = self.config.flask_app.namespace
-        # application_namespace = 'flask-app'
-        application_namespace = self.config.flask_app.namespace
-        # repo = 'https://github.com/rafty/handson-eks_app_manifest.git'
-        repo = self.config.flask_app.repo
-        # repo_path = 'flask/prd/'
-        repo_path = self.config.flask_app.repo_path
+        application_name = self.config.flask_app.namespace  # flask-app
+        application_namespace = self.config.flask_app.namespace  # flask-app
+        repo = self.config.flask_app.repo  # https://github.com/rafty/handson-eks_app_manifest.git
+        repo_path = self.config.flask_app.repo_path  # flask/prd/
 
         flask_app_manifest = {
             'apiVersion': 'argoproj.io/v1alpha1',
@@ -227,7 +225,7 @@ class FlaskAppStack(Stack):
                     'path': repo_path
                 },
                 'destination': {
-                    'server': 'https://kubernetes.default.svc',  #  ArgoCDが動作するClusterにAppをDeployする際のurl
+                    'server': 'https://kubernetes.default.svc',  # ArgoCDが動作するClusterにAppをDeployする際のurl
                     'namespace': application_namespace
                 },
                 'syncPolicy': {
@@ -235,5 +233,50 @@ class FlaskAppStack(Stack):
                 }
             }
         }
-
         return flask_app_manifest
+
+    def application_target_group_binding(self):
+        # Flask ApplicationをALB Target Groupに関連付ける。
+
+        app_manifest = {
+            'apiVersion': 'elbv2.k8s.aws/v1beta1',
+            'kind': 'TargetGroupBinding',
+            'metadata': {
+                'name': 'flask-tgb',        # todo:
+                'namespace': 'flask-app',  # todo:
+            },
+            'spec': {
+                'serviceRef': {
+                    'name': 'flask-app',  # Todo: (注)route traffic to nginx-tgb-svc-alb-ip (clusterIP=None)
+                    'port': 80  # todo:
+                },
+                # 'targetGroupARN': '<your-targetgroup-arn>',  # todo:
+                'targetGroupARN': aws_cdk.Fn.import_value('ALB-TargetGroupArn-1'),
+                # 'targetType': 'ip', # Todo: (注) 削除はclusterIP=Noneだから？
+                'networking': {
+                    'ingress': [
+                        {
+                            'from': [
+                                {
+                                    'securityGroup': {
+                                        # 'groupID': '<YOUR_SG_ID>'  # todo: ALB SG
+                                        'groupID': aws_cdk.Fn.import_value('AlbSecurityGroupId')
+                                    }
+                                }
+                            ],
+                            'ports': [
+                                {
+                                    'protocol': 'TCP',  # Todo: Allow all TCP traffic from ALB SG
+                                    # 'port': 80  # Todo: 削除はAllow all TCP traffic from ALB SGだから
+                                    # 'port': '<YOUR_PORT>'  # Option. if none, Allow all TCP traffic from ALB SG
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+
+        self.cluster.add_manifest(
+            'flask-TargetGroupBinding',
+            app_manifest)

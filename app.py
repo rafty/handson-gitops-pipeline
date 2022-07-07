@@ -27,6 +27,7 @@ codepipeline_stack_flask = CodepipelineStack(
     "CodepipelineStack-flask",
     env=env)
 
+"""Production Environment"""
 
 # ------------------------------------------------------
 # VPC for Dev environment
@@ -39,6 +40,17 @@ vpc_stack_dev = VpcStack(
     cluster_list=['app-dev-1', 'app-dev-2'],  # app-dev-2: for Cluster Blue Green Deployment
     env=env)
 
+
+# ------------------------------------------------------
+# for Dev environment - 1
+# ------------------------------------------------------
+eks_cluster_stack_dev_1 = EksClusterStack(
+    app,
+    "EksClusterStack-dev-1",
+    sys_env='dev-1',
+    env=env)
+eks_cluster_stack_dev_1.add_dependency(vpc_stack_dev)
+
 # ------------------------------------------------------
 # Dev Stateful AWS Resource for App
 #   本Stackは1つのAWS Accountで、dev-1, dev-2のClusterが共通で
@@ -49,83 +61,72 @@ flask_app_stateful_stack_dev = FlaskAppStatefulStack(
     "FlaskAppStatefulStack-Dev",
     sys_env='dev-1',  # Todo: 暫定 cdj.jsonの構成上このようにしている。本来はdevという属性にすべき。
     env=env)
-
-# ------------------------------------------------------
-# for Dev environment - 1
-# ------------------------------------------------------
-eks_cluster_stack_dev_1 = EksClusterStack(
-    app,
-    "EksAppStack-dev-1",
-    sys_env='dev-1',
-    env=env)
-eks_cluster_stack_dev_1.add_dependency(vpc_stack_dev)
+flask_app_stateful_stack_dev.add_dependency(eks_cluster_stack_dev_1)
 
 flask_app_stack_dev_1 = FlaskAppStack(
     app,
     "FlaskAppStack-dev-1",
     sys_env='dev-1',
     env=env)
-flask_app_stack_dev_1.add_dependency(eks_cluster_stack_dev_1)
+flask_app_stack_dev_1.add_dependency(flask_app_stateful_stack_dev)
 
-# ------------------------------------------------------
-# for Dev environment - 2
-# ------------------------------------------------------
-eks_cluster_stack_dev_2 = EksClusterStack(
-    app,
-    "EksAppStack-dev-2",
-    sys_env='dev-2',
-    env=env)
-eks_cluster_stack_dev_2.add_dependency(vpc_stack_dev)
+# # ------------------------------------------------------
+# # for Dev environment - 2
+# # ------------------------------------------------------
+# eks_cluster_stack_dev_2 = EksClusterStack(
+#     app,
+#     "EksClusterStack-dev-2",
+#     sys_env='dev-2',
+#     env=env)
+# eks_cluster_stack_dev_2.add_dependency(vpc_stack_dev)
+#
+# flask_app_stack_dev_2 = FlaskAppStack(
+#     app,
+#     "FlaskAppStack-dev-2",
+#     sys_env='dev-2',
+#     env=env)
+# flask_app_stack_dev_2.add_dependency(eks_cluster_stack_dev_2)
 
-# Todo: DynamoDBを2重作成してしまうので、2つのクラスタで共通のAWSリソースは別スタックに外出しにすること。
-# Todo: ALBも共通リソースになるので一緒に対応すること
-# Todo: dev-2はEKSのバージョンを上げる
-flask_app_stack_dev_2 = FlaskAppStack(
-    app,
-    "FlaskAppStack-dev-2",
-    sys_env='dev-2',
-    env=env)
-flask_app_stack_dev_2.add_dependency(eks_cluster_stack_dev_2)
+"""Production Environment"""
 
-
-# ------------------------------------------------------
-# VPC for Prd environment
-# ------------------------------------------------------
-vpc_stack_prd = VpcStack(
-    app,
-    "EksVpcStack-prd",
-    vpc_name='app-prd',
-    vpc_cidr='10.12.0.0/16',
-    cluster_list=['app-prd-1', 'app-prd-2'],  # app-prd-2: for Cluster Blue Green Deployment
-    env=env)
-
-# ------------------------------------------------------
-# Prd Stateful AWS Resource for App
-#   本Stackは1つのAWS Accountで、dev-1, dev-2のClusterが共通で
-#   利用するStatefulなリソースを構築する
-# ------------------------------------------------------
-flask_app_stateful_stack_prd = FlaskAppStatefulStack(
-    app,
-    "FlaskAppStatefulStack-Prd",
-    sys_env='prd-1',  # Todo: 暫定 cdj.jsonの構成上このようにしている。本来はdevという属性にすべき。
-    env=env)
-
-# ------------------------------------------------------
-# for Prod environment
-# ------------------------------------------------------
-eks_cluster_stack_prd_1 = EksClusterStack(
-    app,
-    "EksAppStack-prd-1",
-    sys_env='prd-1',
-    env=env)
-eks_cluster_stack_prd_1.add_dependency(vpc_stack_prd)
-
-flask_app_stack_prd_1 = FlaskAppStack(
-    app,
-    "FlaskAppStack-prd-1",
-    sys_env='prd-1',
-    env=env)
-flask_app_stack_prd_1.add_dependency(eks_cluster_stack_prd_1)
+# # ------------------------------------------------------
+# # VPC for Prd environment
+# # ------------------------------------------------------
+# vpc_stack_prd = VpcStack(
+#     app,
+#     "EksVpcStack-prd",
+#     vpc_name='app-prd',
+#     vpc_cidr='10.12.0.0/16',
+#     cluster_list=['app-prd-1', 'app-prd-2'],  # app-prd-2: for Cluster Blue Green Deployment
+#     env=env)
+#
+# # ------------------------------------------------------
+# # Prd Stateful AWS Resource for App
+# #   本Stackは1つのAWS Accountで、dev-1, dev-2のClusterが共通で
+# #   利用するStatefulなリソースを構築する
+# # ------------------------------------------------------
+# flask_app_stateful_stack_prd = FlaskAppStatefulStack(
+#     app,
+#     "FlaskAppStatefulStack-Prd",
+#     sys_env='prd-1',  # Todo: 暫定 cdj.jsonの構成上このようにしている。本来はdevという属性にすべき。
+#     env=env)
+#
+# # ------------------------------------------------------
+# # for Prod environment
+# # ------------------------------------------------------
+# eks_cluster_stack_prd_1 = EksClusterStack(
+#     app,
+#     "EksClusterStack-prd-1",
+#     sys_env='prd-1',
+#     env=env)
+# eks_cluster_stack_prd_1.add_dependency(vpc_stack_prd)
+#
+# flask_app_stack_prd_1 = FlaskAppStack(
+#     app,
+#     "FlaskAppStack-prd-1",
+#     sys_env='prd-1',
+#     env=env)
+# flask_app_stack_prd_1.add_dependency(eks_cluster_stack_prd_1)
 
 
 # ------------------------------------------------------

@@ -1,0 +1,17 @@
+apiVersion: elbv2.k8s.aws/v1beta1
+kind: TargetGroupBinding
+metadata:
+  name: flask-tgb
+  namespace: flask-app
+spec:
+  serviceRef:
+    name: flask-app  # route traffic to flask-app service (clusterIP=None)
+    port: 80
+  targetGroupARN: "<your-alb-targetgroup-arn>"
+  networking:
+    ingress:
+    - from:
+      - securityGroup:
+          groupID: "<YOUR_ALB_SG_ID>"
+      ports:
+      - protocol: TCP  # Allow all TCP traffic from ALB SG

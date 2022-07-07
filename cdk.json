@@ -66,7 +66,10 @@
           "repo": "https://github.com/rafty/handson-eks_app_manifest.git",
           "repo_path": "flask/dev/",
           "dynamodb_table": "messages-dev",
-          "dynamodb_partition": "uuid"
+          "dynamodb_partition": "uuid",
+          "wildcard_cert_arn": "arn:aws:acm:ap-northeast-1:338456725408:certificate/124163b3-7ec8-4cf7-af6e-f05d8bc6ce8f",
+          "apex_domain": "yamazon.tk",
+          "sub_domain": "flask-dev.yamazon.tk"
       }
     },
     "dev-2": {
@@ -96,7 +99,10 @@
           "repo": "https://github.com/rafty/handson-eks_app_manifest.git",
           "repo_path": "flask/dev/",
           "dynamodb_table": "messages-dev",
-          "dynamodb_partition": "uuid"
+          "dynamodb_partition": "uuid",
+          "wildcard_cert_arn": "arn:aws:acm:ap-northeast-1:338456725408:certificate/124163b3-7ec8-4cf7-af6e-f05d8bc6ce8f",
+          "apex_domain": "yamazon.tk",
+          "sub_domain": "flask-dev.yamazon.tk"
       }
     },
     "prd-1": {
@@ -126,7 +132,10 @@
           "repo": "https://github.com/rafty/handson-eks_app_manifest.git",
           "repo_path": "flask/prd/",
           "dynamodb_table": "messages-prd",
-          "dynamodb_partition": "uuid"
+          "dynamodb_partition": "uuid",
+          "wildcard_cert_arn": "arn:aws:acm:ap-northeast-1:338456725408:certificate/124163b3-7ec8-4cf7-af6e-f05d8bc6ce8f",
+          "apex_domain": "yamazon.tk",
+          "sub_domain": "flask.yamazon.tk"
       }
     }
   }

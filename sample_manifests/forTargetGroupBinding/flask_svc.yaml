@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-app
+  namespace: flask-app
+spec:
+  selector:
+    app: flask-app
+  clusterIP: None  # Headless Service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000

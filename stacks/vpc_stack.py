@@ -180,7 +180,7 @@ class VpcStack(Stack):
             export_name=f'PublicSubnets-{self.vpc_name}'
         )
 
-        # value = "private_subnet_id_1,private_subnet_id_1,private_subnet_id_1"
+        # value = "private_subnet_id_1,private_subnet_id_2,private_subnet_id_3"
         private_subnet_id_list = [i_subnet.subnet_id for i_subnet in self.vpc.private_subnets]
         private_subnets_string = ','.join(private_subnet_id_list)
         aws_cdk.CfnOutput(

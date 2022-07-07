@@ -30,3 +30,15 @@ class ConfigFlaskApp:
     @property
     def dynamodb_partition(self):
         return self.config.get('dynamodb_partition')
+
+    @property
+    def wildcard_cert_arn(self):
+        return self.config.get('wildcard_cert_arn')
+
+    @property
+    def apex_domain(self):
+        return self.config.get('apex_domain')
+
+    @property
+    def sub_domain(self):
+        return self.config.get('sub_domain')
