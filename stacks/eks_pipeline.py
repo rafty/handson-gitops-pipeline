@@ -15,14 +15,14 @@ class EksClusterStack(Stack):
             **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        self.check_parameter(kwargs)
+        # self.check_parameter(kwargs)
         # Stackの設定値をConfigに保存
         self.config = Config(self, 'Config', sys_env=sys_env, _aws_env=kwargs.get('env'))
 
         _eks_cluster = EksCluster(self, 'EksCluster', config=self.config)
         _eks_cluster.provisioning()
 
-    @staticmethod
-    def check_parameter(key):
-        if type(key.get('env')) is not aws_cdk.Environment:
-            raise TypeError('Set aws_cdk.Environment.')
+    # @staticmethod
+    # def check_parameter(key):
+    #     if type(key.get('env')) is not aws_cdk.Environment:
+    #         raise TypeError('Set aws_cdk.Environment.')

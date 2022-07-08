@@ -16,10 +16,7 @@ class ExternalDnsController(Construct):
         self.cluster: aws_eks = kwargs.get('cluster')
 
     def deploy(self, dependency: Construct) -> Construct:
-        # External DNS Controller
-        #
         # External DNS Controller sets A-Record in the Hosted Zone of Route 53.
-        #
         # how to use:
         #   Set DomainName in annotations of Ingress Manifest.
         #   ex.

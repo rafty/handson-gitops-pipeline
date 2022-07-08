@@ -11,7 +11,6 @@ class TagUpdateFunction(Construct):
     # ----------------------------------------------------------
     # Stage - Manifest Tag Update (GitHub)
     # ----------------------------------------------------------
-
     def __init__(self,
                  scope: Construct,
                  id: str,
@@ -29,7 +28,6 @@ class TagUpdateFunction(Construct):
         return function
 
     def create_lambda_function(self):
-
         lambda_role = self.create_lambda_role()
         git_layer = self.create_lambda_layer()
         powertools_layer = aws_lambda.LayerVersion.from_layer_version_arn(
@@ -83,7 +81,6 @@ class TagUpdateFunction(Construct):
         return lambda_role
 
     def create_lambda_layer(self) -> aws_lambda.LayerVersion:
-        # requirements_file = 'layers/git_command/requirements.txt'
         requirements_file = './_constructs/codepipeline/layers/git_command/requirements.txt'
         output_dir = "layer_pip/"
 

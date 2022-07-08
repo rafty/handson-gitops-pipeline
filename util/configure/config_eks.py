@@ -8,6 +8,10 @@ class ConfigEks:
         return self.config['cluster_name']
 
     @property
+    def cluster_version(self):
+        return self.config['cluster_version']
+
+    @property
     def instance_type(self):
         return self.config['instance_type']
 
@@ -27,7 +31,6 @@ class ConfigEks:
     def addon_extdns_enable(self):
         return self.config.get('addon_extdns_enable', False)
 
-    # Todo: Should be changed to a better method
     @property
     def addon_argocd_enable(self):
         return self.config.get('addon_argocd_enable', False)

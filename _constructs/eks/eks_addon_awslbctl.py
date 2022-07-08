@@ -35,7 +35,6 @@ class AwsLoadBalancerController(Construct):
             awslbcontroller_sa.node.add_dependency(dependency)
 
         statements = []
-        # with open('./policies/awslbcontroller-policy.json') as f:
         with open('./_constructs/eks/policies/awslbcontroller-policy.json') as f:
             data = json.load(f)
             for statement in data['Statement']:

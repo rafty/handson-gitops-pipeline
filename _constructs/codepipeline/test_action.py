@@ -4,7 +4,7 @@ from constructs import Construct
 from aws_cdk import aws_codebuild
 from aws_cdk import aws_codepipeline
 from aws_cdk import aws_codepipeline_actions
-from _constructs.codepipeline.buildspec.test_spec import test_spec_object
+from _constructs.codepipeline.buildspec.testspec import testspec_object
 from util.configure.config import Config
 
 
@@ -23,14 +23,14 @@ class TestAction(Construct):
 
     def create(self):
 
+        # testspec_objectに'pytest_reports'と同じ名前を登録すること
         pytest_group = aws_codebuild.ReportGroup(
             self,
             'TestCoverageGroup',
             report_group_name='pytest_reports',
             removal_policy=aws_cdk.RemovalPolicy.DESTROY)
-        # test_specに同じ名前を登録する　'pytest_reports'
 
-        test_spec = aws_codebuild.BuildSpec.from_object(test_spec_object)
+        test_spec = aws_codebuild.BuildSpec.from_object(testspec_object)
 
         test_project = aws_codebuild.PipelineProject(
             self,
@@ -41,7 +41,7 @@ class TestAction(Construct):
                 privileged=True  # for docker build
             ),
             environment_variables={
-                'AWS_ACCOUNT_ID': {'value': self._account},  # Todo: 必要ない！！
+                'AWS_ACCOUNT_ID': {'value': self._account},
             },
             build_spec=test_spec,
         )
@@ -56,7 +56,7 @@ class TestAction(Construct):
                 'codebuild:CreateReport',
                 'codebuild:UpdateReport',
                 'codebuild:BatchPutTestCases',
-                'codebuild:BatchPutCodeCoverages'  # todo: add pytest-cov
+                'codebuild:BatchPutCodeCoverages'  # for pytest-cov
             ],
             resource_arns=[pytest_group.report_group_arn]
         )
@@ -66,7 +66,6 @@ class TestAction(Construct):
             project=test_project,
             input=self.source_output,
             outputs=[self.test_output],
-            # variables_namespace='ContainerImage'  # BuildEnvironmentVariable
         )
 
         return test_action

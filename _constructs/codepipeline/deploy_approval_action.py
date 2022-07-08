@@ -15,7 +15,7 @@ class DeployApprovalAction(Construct):
         self.stage = stage
 
     def create(self) -> aws_codepipeline_actions.ManualApprovalAction:
-        # SNS Topic -> Lambda　でアクションや通知をおこなってもよい。
+        # SNS Topic -> Lambda Action, Notifyを行っても良い
 
         action = aws_codepipeline_actions.ManualApprovalAction(
             action_name=f'DeployApproval-{self.stage}',

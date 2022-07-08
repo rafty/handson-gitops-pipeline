@@ -33,7 +33,8 @@ class EksCluster(Construct):
             self,
             'EksCluster',
             cluster_name=self.config.eks.cluster_name,
-            version=aws_eks.KubernetesVersion.V1_21,
+            # version=aws_eks.KubernetesVersion.V1_21,
+            version=aws_eks.KubernetesVersion.of(self.config.eks.cluster_version),  # 1.21, 1.22
             default_capacity_type=aws_eks.DefaultCapacityType.NODEGROUP,
             default_capacity=1,
             default_capacity_instance=aws_ec2.InstanceType(self.config.eks.instance_type),
@@ -111,7 +112,8 @@ class EksCluster(Construct):
         return vpc
 
     def get_vpc_cross_stack(self):
-        # from_vpc_attributesを使用する際、３つのAZがあることを前提としている。
+        # (attention) from_vpc_attributesを使用する際、３つのAZがあることを前提とする。
+        #             Cfn Templateを作成する際、AZの数が決定されてなければならない。
         vpc = aws_ec2.Vpc.from_vpc_attributes(
             self,
             'VpcId',
@@ -139,7 +141,7 @@ class EksCluster(Construct):
         return vpc_id
 
     def cluster_outputs_for_cross_stack(self):
-        _env = self.config.env.name  # dev-1, prd-1
+        _env = self.config.env.name  # dev-1, dev-2, prd-1, prd-2
         aws_cdk.CfnOutput(
             self,
             id=f'CfnOutputClusterName',

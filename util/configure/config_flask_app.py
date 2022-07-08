@@ -4,6 +4,10 @@ class ConfigFlaskApp:
         self.config = config
 
     @property
+    def service_name(self):
+        return self.config['service_name']
+
+    @property
     def eks_cluster(self):
         return self.config['eks_cluster']
 

@@ -1,13 +1,9 @@
-import yaml
 import aws_cdk
 from aws_cdk import Stack
 from constructs import Construct
-from aws_cdk import aws_eks
 from aws_cdk import aws_ec2
 from aws_cdk import aws_dynamodb
-from aws_cdk import aws_iam
 from aws_cdk import aws_elasticloadbalancingv2
-from aws_cdk import aws_elasticloadbalancingv2_targets
 from aws_cdk import aws_route53
 from aws_cdk import aws_route53_targets
 from aws_cdk import aws_certificatemanager
@@ -52,7 +48,7 @@ class FlaskAppStatefulStack(Stack):
         # Application Load Balancer
         # --------------------------------------------------------------
         alb = self.create_alb()
-        self.create_blue_green_target_group(alb=alb)
+        self.create_alb_target_group(alb=alb)
         self.register_subdomain(alb=alb)
 
     def create_alb(self) -> aws_elasticloadbalancingv2.ApplicationLoadBalancer:
@@ -70,32 +66,7 @@ class FlaskAppStatefulStack(Stack):
             connection=aws_ec2.Port.tcp(443)
         )
 
-        # # get subnets. non exist vpc subnets. cross stack reference.
-        # public_subnet_ids_string = aws_cdk.Fn.import_value(f'PublicSubnets-{self.config.vpc.name}')
-        # public_subnet_ids = public_subnet_ids_string.split(',')
-        # subnets = [
-        #     aws_ec2.Subnet.from_subnet_attributes(
-        #         self,
-        #         f'public-subnet-{i+1}',
-        #         subnet_id=public_subnet_id,)
-        #     for i, public_subnet_id in enumerate(public_subnet_ids)
-        # ]
-        # subnets = []
-        # for i, public_subnet_id in enumerate(public_subnet_ids):
-        #     subnets.append(
-        #         aws_ec2.Subnet.from_subnet_attributes(
-        #             self,
-        #             f'public-subnet-{i+1}',
-        #             subnet_id=public_subnet_id)
-        #     )
-        # subnets = [
-        #     aws_ec2.Subnet.from_subnet_attributes(
-        #         self,
-        #         f'public-subnet-{i+1}',
-        #         subnet_id=public_subnet_id)
-        # ]
-
-        # ALB
+        # AWS Application Load Balancer
         alb = aws_elasticloadbalancingv2.ApplicationLoadBalancer(
             self,
             'Alb',
@@ -103,10 +74,10 @@ class FlaskAppStatefulStack(Stack):
             internet_facing=True,
             security_group=alb_security_group,
             vpc=self.vpc,
-            # vpc_subnets=aws_ec2.SubnetSelection(subnets)
-            vpc_subnets=aws_ec2.SubnetSelection(subnet_type=aws_ec2.SubnetType.PUBLIC)  # Todo: これでいいの？
+            vpc_subnets=aws_ec2.SubnetSelection(subnet_type=aws_ec2.SubnetType.PUBLIC)
         )
 
+        # cross stack reference. for TargetGroupBinding
         aws_cdk.CfnOutput(
             self,
             id='CfnOutputAlbSecurityGroupId',
@@ -114,28 +85,29 @@ class FlaskAppStatefulStack(Stack):
             description="Security GroupId of ALB",
             export_name='AlbSecurityGroupId'
         )
-
         return alb
 
-    def create_blue_green_target_group(
+    def create_alb_target_group(
             self,
             alb: aws_elasticloadbalancingv2.ApplicationLoadBalancer):
+        # AWS Application Load Balancer Target Group for TargetGroupBinding
+        # https://www.google.com/search?q=aws+application+load+balancer+targetgroupbinding&oq=aws+application+load+balancer+targetgroupbinding&aqs=chrome..69i57j0i546l2.19813j0j7&sourceid=chrome&ie=UTF-8
 
-        # Todo: health checkを指定してるが適用されてないようだ。
+        # health check
         health_check = aws_elasticloadbalancingv2.HealthCheck(
             interval=aws_cdk.Duration.seconds(30),
             path='/healthz',
             timeout=aws_cdk.Duration.seconds(5)
         )
 
-        # k8s Manifest TargetGroupBindingでserviceとTargetGroupArnで接続する
-        # Cluster BlueGreen用に事前に作成する
+        # Cluster BlueGreen用に2つのTargetGroupを作成する
+        # ALBの場合、Service typeはClusterIP
+        # targets: TargetGroupBindingでTargetを登録するため必要なし
         target_group_1 = aws_elasticloadbalancingv2.ApplicationTargetGroup(
             self,
             'BlueGreenTargetGroup-1',
             target_group_name='blue-green-tg-1',
-            # targets=xxxx,  # k8s Manifest TargetGroupBindingで接続するため必要なし
-            target_type=aws_elasticloadbalancingv2.TargetType.IP,  # k8s service type ClusterIp
+            target_type=aws_elasticloadbalancingv2.TargetType.IP,  # k8s service type ClusterIP
             protocol=aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
             port=80,
             vpc=self.vpc,
@@ -146,32 +118,31 @@ class FlaskAppStatefulStack(Stack):
             self,
             'BlueGreenTargetGroup-2',
             target_group_name='blue-green-tg-2',
-            # targets=xxxx,  # k8s Manifest TargetGroupBindingで接続するため必要なし
-            target_type=aws_elasticloadbalancingv2.TargetType.IP,  # k8s service type ClusterIp
+            target_type=aws_elasticloadbalancingv2.TargetType.IP,  # k8s service type ClusterIP
             protocol=aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
             port=80,
             vpc=self.vpc,
             health_check=health_check
         )
 
-        # wildcard certification
+        # wildcard certification for ALB Listener
         cert = aws_certificatemanager.Certificate.from_certificate_arn(
             self,
             'Certificate',
             certificate_arn=self.config.flask_app.wildcard_cert_arn
         )
 
-        # listener
+        # HTTPS ALB Listener
+        # alb listener needs at least one default_action or target_group
         https_listener = alb.add_listener(
             'Listener443',
             port=443,
             protocol=aws_elasticloadbalancingv2.ApplicationProtocol.HTTPS,
-            default_action=aws_elasticloadbalancingv2.ListenerAction.weighted_forward([  # todo: これでいいのか？
+            default_action=aws_elasticloadbalancingv2.ListenerAction.weighted_forward([
                 {'targetGroup': target_group_1, 'weight': 100},
             ]),
             certificates=[cert]  # Certification
         )
-        # Listener needs at least one default action or target group  # Todo: TargetGroupを指定するほうがよいのか？
 
         # ApplicationListenerRuleでlistenerとtarget_groupを連携する
         listener_rule = aws_elasticloadbalancingv2.ApplicationListenerRule(
@@ -179,19 +150,26 @@ class FlaskAppStatefulStack(Stack):
             'ApplicationListenerRule',
             listener=https_listener,
             priority=1,  # Priority of the rule.
+            # --------- ↓ Blue Green Traffic switching ---------
+            # action=aws_elasticloadbalancingv2.ListenerAction.weighted_forward([
+            #         {'targetGroup': target_group_1, 'weight': 100},  # Blue
+            #         {'targetGroup': target_group_2, 'weight': 0},    # Green
+            #      ]),
             action=aws_elasticloadbalancingv2.ListenerAction.weighted_forward([
-                    {'targetGroup': target_group_1, 'weight': 100},  # Blue
-                    {'targetGroup': target_group_2, 'weight': 0},    # Green
+                    {'targetGroup': target_group_1, 'weight': 0},      # Blue
+                    {'targetGroup': target_group_2, 'weight': 100},    # Green
                  ]),
+            # --------- ↑ Blue Green Traffic switching ---------
             conditions=[
                 aws_elasticloadbalancingv2.ListenerCondition.path_patterns(['/*']),
                 aws_elasticloadbalancingv2.ListenerCondition.host_headers([
-                    self.config.flask_app.sub_domain,  # flask.yamazon.tkからのアクセスを許可。
-                                                       # alb-dns名でのアクセスを拒否する
+                    self.config.flask_app.sub_domain,  # flask.yamazon.tkからのアクセスを許可
+                                                       # alb dns名でのアクセスを拒否
                 ])
             ]
         )
 
+        # Cross Stack Reference for TargetGroupBinding manifest
         aws_cdk.CfnOutput(
             self,
             id='CfnOutputTargetGroupArn-1',
@@ -199,7 +177,6 @@ class FlaskAppStatefulStack(Stack):
             description="ALB Target Group for cluster blue green",
             export_name='ALB-TargetGroupArn-1'
         )
-
         aws_cdk.CfnOutput(
             self,
             id='CfnOutputTargetGroupArn-2',
@@ -207,9 +184,29 @@ class FlaskAppStatefulStack(Stack):
             description="ALB Target Group for cluster blue green",
             export_name='ALB-TargetGroupArn-2'
         )
+        # # ↓ todo: delete
+        # aws_cdk.CfnOutput(
+        #     self,
+        #     id='CfnOutputTargetGroupArn-1-old',
+        #     value=target_group_1.target_group_arn,
+        #     description="ALB Target Group for cluster blue green",
+        #     # export_name='ALB-TargetGroupArn-1'
+        #     export_name=f'ALB-TargetGroupArn-1-{self.config.env.name}'  # todo: for blue-green refactoring 2022.07.07
+        # )
+        # aws_cdk.CfnOutput(
+        #     self,
+        #     id='CfnOutputTargetGroupArn-2-old',
+        #     value=target_group_2.target_group_arn,
+        #     description="ALB Target Group for cluster blue green",
+        #     # export_name='ALB-TargetGroupArn-2',
+        #     export_name=f'ALB-TargetGroupArn-2-{self.config.env.name}'  # todo: for blue-green refactoring 2022.07.07
+        # )
+        # # ↑ todo: delete
 
     def register_subdomain(self, alb: aws_elasticloadbalancingv2.ApplicationLoadBalancer):
-
+        # Route53 Hosted ZoneにApplicationのA Recordを追加する。
+        # 既にA Recordが存在する場合はエラーとなるため、手動で削除する必要がある。
+        # delete_existingパラメータがDocumentに存在するが現時点では指定不可
         hosted_zone = aws_route53.HostedZone.from_lookup(
             self,
             'ApexHostedZone',
@@ -221,17 +218,20 @@ class FlaskAppStatefulStack(Stack):
             'AliasRecord',
             record_name=self.config.flask_app.sub_domain,  # flask.yamazon.th
             zone=hosted_zone,
-            # delete_existing=True,  # manualにあるが指定できない！
+            # delete_existing=True,  # Documentにあるが指定できない！ 将来対応
             target=aws_route53.RecordTarget.from_alias(
                 aws_route53_targets.LoadBalancerTarget(alb))
         )
-        # record.node.default_child.override_logical_id(record.node.id)
-        record.node.default_child.override_logical_id('OverrideExistingRecord')
-        # Todo: これで上書きができるのか？
-        # https://github.com/aws/aws-cdk/issues/12564
+
+        # Todo: 削除予定
+        # # record.node.default_child.override_logical_id(record.node.id)
+        # record.node.default_child.override_logical_id('OverrideExistingRecord')
+        # # Todo: これで上書きができるのか？
+        # # https://github.com/aws/aws-cdk/issues/12564
 
     def get_vpc_cross_stack(self):
-        # Todo: from_vpc_attributesを使用する際、３つのAZがあることを前提とする
+        # Cross Stack Reference
+        # from_vpc_attributesを使用する際、３つのAZがあることを前提
         vpc = aws_ec2.Vpc.from_vpc_attributes(
             self,
             'VpcId',
@@ -253,4 +253,3 @@ class FlaskAppStatefulStack(Stack):
             )
         )
         return vpc
-

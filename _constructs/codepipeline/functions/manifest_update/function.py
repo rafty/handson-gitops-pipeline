@@ -14,16 +14,15 @@ def replace_image_tag(manifest, container_image_tag: str):
 
     image = manifest['spec']['template']['spec']['containers'][0]['image']
     _list = image.rsplit(':')
-    _list[1] = container_image_tag  # tagを更新
+    _list[1] = container_image_tag  # Update Tag
     image_value = ':'.join(_list)
-    manifest['spec']['template']['spec']['containers'][0]['image'] = image_value  # manifestを更新
+    manifest['spec']['template']['spec']['containers'][0]['image'] = image_value  # update manifest
     return manifest
 
 
 def update_manifest(target_manifest, container_image_tag: str):
     with open(target_manifest, 'r', encoding='utf-8') as f:
         manifest = yaml.safe_load(f)
-        # pprint.pprint(manifest)
         replaced_manifest = replace_image_tag(manifest, container_image_tag=container_image_tag)
 
     with open(target_manifest, 'w', encoding='utf-8') as f:

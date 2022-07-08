@@ -13,21 +13,19 @@ class ArgoCd(Construct):
     def __init__(self, scope: Construct, id: str, **kwargs) -> None:
         super().__init__(scope, id)
 
-        # platform parameter
-        # self.check_parameter(kwargs)
         self.region = kwargs.get('region')
         self.cluster: aws_eks.Cluster = kwargs.get('cluster')
         self.config: Config = kwargs.get('config')
+
         # Argo cd fixed value
         self.labels = {'app.kubernetes.io/name': 'argocd-server'}
         self.ingress_name = 'argocd'
         self.namespace = 'argocd'
         self.repository = 'https://argoproj.github.io/argo-helm'
         self.chart_name = 'argo-cd'
-        self.chart_version = None  # '4.6.0' , None: latest
-        self.release = 'argocd'  # deploy name: Ingressの指定があるので'argocd'に固定する。
-        # Argo CD Ingress fixed value
-        self.labels = {'app.kubernetes.io/name': 'argocd-server'}
+        self.chart_version = None  # for example: '4.6.0' , None: latest
+        self.release = 'argocd'  # deploy name: k8s Ingressの指定があるため'argocd'に固定する。
+        self.labels = {'app.kubernetes.io/name': 'argocd-server'}  # Argo CD Ingress fixed value
         self.ingress_name = 'argocd'
 
     def deploy(self, dependency: Construct) -> Construct:
@@ -38,11 +36,10 @@ class ArgoCd(Construct):
         _argocd_helm_chart = self.cluster.add_helm_chart(
             'ArgocdHelmChart',
             namespace=self.namespace,
-            # repository=self.configure.get('argocd_repository'),
             repository=self.repository,
             chart=self.chart_name,  # 'argo-cd'
             release=self.release,  # Ingressの指定があるので'argocd'に固定する。
-            # version=self.chart_version,  # No version parameter is latest.
+            # version='4.9.8',  # No version parameter is latest.
             values={
                 'configs': {
                     'secret': {
@@ -155,12 +152,3 @@ class ArgoCd(Construct):
             argocd_ingress.node.add_dependency(dependency)
 
         return argocd_ingress
-
-    # @staticmethod
-    # def check_parameter(key):
-    #     if type(key.get('region')) is not str:
-    #         raise TypeError('Must be set region.')
-    #     if key.get('region') == '':
-    #         raise TypeError('Must be set region.')
-    #     if type(key.get('cluster')) is not aws_eks.Cluster:
-    #         raise TypeError('Must be set region.')

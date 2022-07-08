@@ -70,22 +70,22 @@ flask_app_stack_dev_1 = FlaskAppStack(
     env=env)
 flask_app_stack_dev_1.add_dependency(flask_app_stateful_stack_dev)
 
-# # ------------------------------------------------------
-# # for Dev environment - 2
-# # ------------------------------------------------------
-# eks_cluster_stack_dev_2 = EksClusterStack(
-#     app,
-#     "EksClusterStack-dev-2",
-#     sys_env='dev-2',
-#     env=env)
-# eks_cluster_stack_dev_2.add_dependency(vpc_stack_dev)
-#
-# flask_app_stack_dev_2 = FlaskAppStack(
-#     app,
-#     "FlaskAppStack-dev-2",
-#     sys_env='dev-2',
-#     env=env)
-# flask_app_stack_dev_2.add_dependency(eks_cluster_stack_dev_2)
+# ------------------------------------------------------
+# for Dev environment - 2
+# ------------------------------------------------------
+eks_cluster_stack_dev_2 = EksClusterStack(
+    app,
+    "EksClusterStack-dev-2",
+    sys_env='dev-2',
+    env=env)
+eks_cluster_stack_dev_2.add_dependency(flask_app_stack_dev_1)
+
+flask_app_stack_dev_2 = FlaskAppStack(
+    app,
+    "FlaskAppStack-dev-2",
+    sys_env='dev-2',
+    env=env)
+flask_app_stack_dev_2.add_dependency(eks_cluster_stack_dev_2)
 
 """Production Environment"""
 
