@@ -10,13 +10,17 @@ class AwsLoadBalancerController(Construct):
     # IngressのannotationでALBを作成する
     # ----------------------------------------------------------
 
-    def __init__(self, scope: Construct, id: str, **kwargs) -> None:
+    def __init__(self,
+                 scope: Construct,
+                 id: str,
+                 region: str,
+                 cluster: aws_eks.Cluster,
+                 vpc_id: str) -> None:
         super().__init__(scope, id)
 
-        self.check_parameter(kwargs)
-        self.region = kwargs.get('region')
-        self.vpc_id = kwargs.get('vpc_id')
-        self.cluster: aws_eks.Cluster = kwargs.get('cluster')
+        self.region = region
+        self.vpc_id = vpc_id
+        self.cluster: aws_eks.Cluster = cluster
 
     def deploy(self, dependency: Construct) -> Construct:
         # ----------------------------------------------------------
@@ -70,12 +74,3 @@ class AwsLoadBalancerController(Construct):
         aws_lb_controller_chart.node.add_dependency(awslbcontroller_sa)
 
         return aws_lb_controller_chart
-
-    @staticmethod
-    def check_parameter(key):
-        if type(key.get('region')) is not str:
-            raise TypeError('Must be set region.')
-        if key.get('region') == '':
-            raise TypeError('Must be set region.')
-        if type(key.get('cluster')) is not aws_eks.Cluster:
-            raise TypeError('Must be set Cluster.')

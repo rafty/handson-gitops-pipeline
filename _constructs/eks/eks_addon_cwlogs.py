@@ -7,12 +7,15 @@ class CloudWatchContainerInsightsLogs(Construct):
     # ----------------------------------------------------------
     # Cloudwatch Container Insights - Logs / fluentbit
     # ----------------------------------------------------------
-    def __init__(self, scope: Construct, id: str, **kwargs) -> None:
+    def __init__(self,
+                 scope: Construct,
+                 id: str,
+                 region: str,
+                 cluster: aws_eks.Cluster) -> None:
         super().__init__(scope, id)
 
-        self.check_parameter(kwargs)
-        self.region = kwargs.get('region')
-        self.cluster: aws_eks.Cluster = kwargs.get('cluster')
+        self.region = region
+        self.cluster: aws_eks.Cluster = cluster
 
     def deploy(self, dependency: Construct) -> Construct:
         # --------------------------------------------------------------
@@ -96,12 +99,3 @@ class CloudWatchContainerInsightsLogs(Construct):
         cloudwatch_helm_chart.node.add_dependency(fluentbit_service_account)
 
         return cloudwatch_helm_chart
-
-    @staticmethod
-    def check_parameter(key):
-        if type(key.get('region')) is not str:
-            raise TypeError('Must be set region.')
-        if key.get('region') == '':
-            raise TypeError('Must be set region.')
-        if type(key.get('cluster')) is not aws_eks.Cluster:
-            raise TypeError('Must be set region.')

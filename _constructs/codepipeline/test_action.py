@@ -5,24 +5,22 @@ from aws_cdk import aws_codebuild
 from aws_cdk import aws_codepipeline
 from aws_cdk import aws_codepipeline_actions
 from _constructs.codepipeline.buildspec.testspec import testspec_object
-from util.configure.config import Config
 
 
 class TestAction(Construct):
     # ----------------------------------------------------------
     # Unit Test action
     # ----------------------------------------------------------
-    def __init__(self, scope: Construct, id: str, source_output, config: Config, **kwargs) -> None:
+    def __init__(self, scope: Construct, id: str, source_output, config: dict, aws_env: dict) -> None:
         super().__init__(scope, id)
 
-        self.config = config
-        self._account = self.config.aws_env.account
-        self._region = self.config.aws_env.region
+        self.config: dict = config
+        self.account = aws_env['account']
+        self.region = aws_env['region']
         self.source_output = source_output
         self.test_output = aws_codepipeline.Artifact('test_output')
 
     def create(self):
-
         # testspec_objectに'pytest_reports'と同じ名前を登録すること
         pytest_group = aws_codebuild.ReportGroup(
             self,
@@ -34,14 +32,14 @@ class TestAction(Construct):
 
         test_project = aws_codebuild.PipelineProject(
             self,
-            id='sample_test_project',
-            project_name='sample_test_project',
+            id='pytest_project',
+            project_name='pytest_project',
             environment=aws_codebuild.BuildEnvironment(
                 build_image=aws_codebuild.LinuxBuildImage.STANDARD_4_0,
                 privileged=True  # for docker build
             ),
             environment_variables={
-                'AWS_ACCOUNT_ID': {'value': self._account},
+                'AWS_ACCOUNT_ID': {'value': self.account},
             },
             build_spec=test_spec,
         )

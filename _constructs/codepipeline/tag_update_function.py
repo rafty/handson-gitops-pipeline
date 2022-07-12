@@ -4,7 +4,6 @@ import aws_cdk
 from constructs import Construct
 from aws_cdk import aws_lambda
 from aws_cdk import aws_iam
-from util.configure.config import Config
 
 
 class TagUpdateFunction(Construct):
@@ -14,11 +13,12 @@ class TagUpdateFunction(Construct):
     def __init__(self,
                  scope: Construct,
                  id: str,
-                 config: Config,
-                 **kwargs) -> None:
+                 config: dict,
+                 aws_env: dict) -> None:
         super().__init__(scope, id)
 
         self.config = config
+        self.aws_env = aws_env
 
     def create(self):
         # ----------------------------------------------------------
@@ -33,7 +33,7 @@ class TagUpdateFunction(Construct):
         powertools_layer = aws_lambda.LayerVersion.from_layer_version_arn(
             self,
             id='lambda-powertools',
-            layer_version_arn=(f'arn:aws:lambda:{self.config.aws_env.region}:017000801446:'
+            layer_version_arn=(f'arn:aws:lambda:{self.aws_env["region"]}:017000801446:'
                                'layer:AWSLambdaPowertoolsPython:19')
         )
 
@@ -43,7 +43,6 @@ class TagUpdateFunction(Construct):
             function_name='GithubManifestTagUpdate',
             handler='function.lambda_handler',
             runtime=aws_lambda.Runtime.PYTHON_3_8,
-            # code=aws_lambda.Code.from_asset('./functions/manifest_update'),
             code=aws_lambda.Code.from_asset('./_constructs/codepipeline/functions/manifest_update'),
             role=lambda_role,
             layers=[powertools_layer, git_layer],

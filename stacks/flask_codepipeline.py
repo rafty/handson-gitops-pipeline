@@ -4,7 +4,6 @@ from constructs import Construct
 from aws_cdk import aws_ecr
 from aws_cdk import aws_codepipeline
 from aws_cdk import aws_codebuild
-from util.configure.config import Config
 from _constructs.codepipeline.source_action import SourceAction
 from _constructs.codepipeline.build_action import BuildAction
 from _constructs.codepipeline.tag_update_action import TagUpdateAction
@@ -18,22 +17,21 @@ class CodepipelineStack(Stack):
     def __init__(self,
                  scope: Construct,
                  construct_id: str,
+                 config: dict,
                  **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        self.config = Config(self, 'Config', sys_env=None, _aws_env=kwargs.get('env'))
+        self.aws_env = {'account': self.account, 'region': self.region}
 
         # ------------------------------------------------------------
         # ECR Repositoryの作成
         # ------------------------------------------------------------
-        ecr_repository_name = self.config.codepipeline.ecr_repository_name
-
-        self.__ecr_repo = aws_ecr.Repository(
+        aws_ecr.Repository(
             self,
-            id=f'{ecr_repository_name}-Stack',
-            repository_name=ecr_repository_name,
-            # image_scan_on_push=True,  # Image Scan
+            id=f"{config['ecr_repository_name']}-Stack",
+            repository_name=config['ecr_repository_name'],
             removal_policy=aws_cdk.RemovalPolicy.DESTROY,  # stack削除時の動作
+            # image_scan_on_push=True,  # Image Scan
             # lifecycle_rules=[removal_old_image]  # imageの世代管理
         )
 
@@ -42,15 +40,15 @@ class CodepipelineStack(Stack):
         # ------------------------------------------------------------
         codepipeline = aws_codepipeline.Pipeline(
             self,
-            id=self.config.codepipeline.pipeline_name,
-            pipeline_name=self.config.codepipeline.pipeline_name,
+            id=config['pipeline_name'],
+            pipeline_name=config['pipeline_name'],
             # cross_account_keys=False
         )
 
         # ------------------------------------------------------------
         # Stage - Source
         # ------------------------------------------------------------
-        source = SourceAction(self, 'SourceStage', config=self.config)
+        source = SourceAction(self, 'SourceStage', config=config)
         source_action = source.create()
         codepipeline.add_stage(
             stage_name='Source',
@@ -64,7 +62,8 @@ class CodepipelineStack(Stack):
             self,
             'TestStage',
             source_output=source.source_output,
-            config=self.config
+            config=config,
+            aws_env=self.aws_env
         )
         test_action = test.create()
         codepipeline.add_stage(
@@ -79,7 +78,8 @@ class CodepipelineStack(Stack):
             self,
             'BuildStage',
             source_output=source.source_output,
-            config=self.config
+            config=config,
+            aws_env=self.aws_env
         )
         build_action = build.create()
         codepipeline.add_stage(
@@ -88,32 +88,35 @@ class CodepipelineStack(Stack):
         )
 
         # ------------------------------------------------------------
-        # Manifest Tag Update Function
-        # ------------------------------------------------------------
-        tag_update_function = TagUpdateFunction(self, 'TagUpdateFunction', config=self.config)
-        tag_update_action_function = tag_update_function.create()
-
-        # ------------------------------------------------------------
         # Stage - Dev Manifest Tag Update (GitHub)
         # ------------------------------------------------------------
+        tag_update_function = TagUpdateFunction(
+            self,
+            'TagUpdateFunction',
+            config=config,
+            aws_env=self.aws_env
+        )
+        tag_update_action_function = tag_update_function.create()
+
         container_info = {
             'container_image_name': aws_codebuild.BuildEnvironmentVariable(
                 value=build_action.variable('VAR_CONTAINER_IMAGE_NAME')),
             'container_image_tag': aws_codebuild.BuildEnvironmentVariable(
                 value=build_action.variable('VAR_CONTAINER_IMAGE_TAG'))
         }
-        target_manifest_info = {
-            'github_target_repository': self.config.codepipeline.github_target_repository,
-            'github_target_manifest': self.config.codepipeline.github_target_manifest_dev,
-            'github_token_name': self.config.codepipeline.github_token_name,
+        cd_manifest_info = {
+            'github_cd_repository': config['github_cd_repository'],
+            'github_cd_manifest': config['github_cd_manifest_dev'],
+            'github_token_name': config['github_token_name'],
         }
         tag_update = TagUpdateAction(
             self,
             'TagUpdateStage-Dev',
             function=tag_update_action_function,
             container_info=container_info,
-            target_manifest_info=target_manifest_info,
-            config=self.config
+            cd_manifest_info=cd_manifest_info,
+            config=config,
+            aws_env=self.aws_env,
         )
         tag_update_action = tag_update.create()
         codepipeline.add_stage(
@@ -129,7 +132,7 @@ class CodepipelineStack(Stack):
             self,
             f'DeployApprovalStage-{stage}',
             stage=stage,
-            config=self.config
+            config=config
         )
         deploy_approval_action = prd_deploy_approval.create()
         codepipeline.add_stage(
@@ -140,18 +143,19 @@ class CodepipelineStack(Stack):
         # ------------------------------------------------------------
         # Stage - Prd Manifest Tag Update (on GitHub)
         # ------------------------------------------------------------
-        target_manifest_info = {
-            'github_target_repository': self.config.codepipeline.github_target_repository,
-            'github_target_manifest': self.config.codepipeline.github_target_manifest_prd,
-            'github_token_name': self.config.codepipeline.github_token_name,
+        cd_manifest_info = {
+            'github_cd_repository': config['github_cd_repository'],
+            'github_cd_manifest': config['github_cd_manifest_prd'],
+            'github_token_name': config['github_token_name'],
         }
         tag_update = TagUpdateAction(
             self,
             'TagUpdateStage-Prd',
             function=tag_update_action_function,
             container_info=container_info,
-            target_manifest_info=target_manifest_info,
-            config=self.config
+            cd_manifest_info=cd_manifest_info,
+            config=config,
+            aws_env=self.aws_env
         )
         tag_update_action = tag_update.create()
         codepipeline.add_stage(

@@ -7,7 +7,6 @@ from aws_cdk import aws_elasticloadbalancingv2
 from aws_cdk import aws_route53
 from aws_cdk import aws_route53_targets
 from aws_cdk import aws_certificatemanager
-from util.configure.config import Config
 
 
 class FlaskAppStatefulStack(Stack):
@@ -16,11 +15,14 @@ class FlaskAppStatefulStack(Stack):
             self,
             scope: Construct,
             construct_id: str,
-            sys_env: str,
+            vpc_config: dict,
+            flask_stateful_config: dict,
             **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        self.config = Config(self, 'Config', sys_env=sys_env, _aws_env=kwargs.get('env'))
+        self.vpc_conf = vpc_config
+        self.flask_stateful_conf = flask_stateful_config
+
         self.vpc = self.get_vpc_cross_stack()
 
         self.create_stateful_alb()
@@ -33,9 +35,9 @@ class FlaskAppStatefulStack(Stack):
         _dynamodb = aws_dynamodb.Table(
             self,
             id='DynamoDbTable',
-            table_name=self.config.flask_app.dynamodb_table,
+            table_name=self.flask_stateful_conf['dynamodb_table'],
             partition_key=aws_dynamodb.Attribute(
-                name=self.config.flask_app.dynamodb_partition,
+                name=self.flask_stateful_conf['dynamodb_partition'],
                 type=aws_dynamodb.AttributeType.STRING),
             read_capacity=1,
             write_capacity=1,
@@ -59,8 +61,9 @@ class FlaskAppStatefulStack(Stack):
             'alb-sg',
             vpc=self.vpc,
             description='ALB Security Group',
-            security_group_name='flask-alb'
+            security_group_name=f'flask-alb-{self.flask_stateful_conf["env"]}'
         )
+
         alb_security_group.add_ingress_rule(
             peer=aws_ec2.Peer.ipv4('0.0.0.0/0'),
             connection=aws_ec2.Port.tcp(443)
@@ -70,7 +73,7 @@ class FlaskAppStatefulStack(Stack):
         alb = aws_elasticloadbalancingv2.ApplicationLoadBalancer(
             self,
             'Alb',
-            load_balancer_name='flask-app',
+            load_balancer_name=f'flask-{self.flask_stateful_conf["env"]}',
             internet_facing=True,
             security_group=alb_security_group,
             vpc=self.vpc,
@@ -83,15 +86,16 @@ class FlaskAppStatefulStack(Stack):
             id='CfnOutputAlbSecurityGroupId',
             value=alb_security_group.security_group_id,
             description="Security GroupId of ALB",
-            export_name='AlbSecurityGroupId'
+            export_name=f'AlbSecurityGroupId-{self.flask_stateful_conf["env"]}'
         )
         return alb
 
     def create_alb_target_group(
             self,
             alb: aws_elasticloadbalancingv2.ApplicationLoadBalancer):
-        # AWS Application Load Balancer Target Group for TargetGroupBinding
-        # https://www.google.com/search?q=aws+application+load+balancer+targetgroupbinding&oq=aws+application+load+balancer+targetgroupbinding&aqs=chrome..69i57j0i546l2.19813j0j7&sourceid=chrome&ie=UTF-8
+        """AWS Application Load Balancer Target Group for TargetGroupBinding
+        https://www.google.com/search?q=aws+application+load+balancer+targetgroupbinding&oq=aws+application+load+balancer+targetgroupbinding&aqs=chrome..69i57j0i546l2.19813j0j7&sourceid=chrome&ie=UTF-8
+        """
 
         # health check
         health_check = aws_elasticloadbalancingv2.HealthCheck(
@@ -106,7 +110,7 @@ class FlaskAppStatefulStack(Stack):
         target_group_1 = aws_elasticloadbalancingv2.ApplicationTargetGroup(
             self,
             'BlueGreenTargetGroup-1',
-            target_group_name='blue-green-tg-1',
+            target_group_name=f'blue-green-tg-1-{self.flask_stateful_conf["env"]}',
             target_type=aws_elasticloadbalancingv2.TargetType.IP,  # k8s service type ClusterIP
             protocol=aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
             port=80,
@@ -117,7 +121,7 @@ class FlaskAppStatefulStack(Stack):
         target_group_2 = aws_elasticloadbalancingv2.ApplicationTargetGroup(
             self,
             'BlueGreenTargetGroup-2',
-            target_group_name='blue-green-tg-2',
+            target_group_name=f'blue-green-tg-2-{self.flask_stateful_conf["env"]}',
             target_type=aws_elasticloadbalancingv2.TargetType.IP,  # k8s service type ClusterIP
             protocol=aws_elasticloadbalancingv2.ApplicationProtocol.HTTP,
             port=80,
@@ -129,7 +133,7 @@ class FlaskAppStatefulStack(Stack):
         cert = aws_certificatemanager.Certificate.from_certificate_arn(
             self,
             'Certificate',
-            certificate_arn=self.config.flask_app.wildcard_cert_arn
+            certificate_arn=self.flask_stateful_conf['wildcard_cert_arn']
         )
 
         # HTTPS ALB Listener
@@ -150,21 +154,21 @@ class FlaskAppStatefulStack(Stack):
             'ApplicationListenerRule',
             listener=https_listener,
             priority=1,  # Priority of the rule.
-            # --------- ↓ Blue Green Traffic switching ---------
-            # action=aws_elasticloadbalancingv2.ListenerAction.weighted_forward([
-            #         {'targetGroup': target_group_1, 'weight': 100},  # Blue
-            #         {'targetGroup': target_group_2, 'weight': 0},    # Green
-            #      ]),
+            # Todo: --------- ↓ Blue Green Traffic switching ---------
             action=aws_elasticloadbalancingv2.ListenerAction.weighted_forward([
-                    {'targetGroup': target_group_1, 'weight': 0},      # Blue
-                    {'targetGroup': target_group_2, 'weight': 100},    # Green
+                    {'targetGroup': target_group_1, 'weight': 100},  # Blue
+                    {'targetGroup': target_group_2, 'weight': 0},    # Green
                  ]),
-            # --------- ↑ Blue Green Traffic switching ---------
+            # action=aws_elasticloadbalancingv2.ListenerAction.weighted_forward([
+            #         {'targetGroup': target_group_1, 'weight': 0},      # Blue
+            #         {'targetGroup': target_group_2, 'weight': 100},    # Green
+            #      ]),
+            # Todo: --------- ↑ Blue Green Traffic switching ---------
             conditions=[
                 aws_elasticloadbalancingv2.ListenerCondition.path_patterns(['/*']),
                 aws_elasticloadbalancingv2.ListenerCondition.host_headers([
-                    self.config.flask_app.sub_domain,  # flask.yamazon.tkからのアクセスを許可
-                                                       # alb dns名でのアクセスを拒否
+                    self.flask_stateful_conf['sub_domain'],
+                    # flask.yamazon.tkからのアクセスを許可, alb dns名でのアクセスを拒否
                 ])
             ]
         )
@@ -175,33 +179,17 @@ class FlaskAppStatefulStack(Stack):
             id='CfnOutputTargetGroupArn-1',
             value=target_group_1.target_group_arn,
             description="ALB Target Group for cluster blue green",
-            export_name='ALB-TargetGroupArn-1'
+            export_name=f'ALB-TargetGroupArn-{self.flask_stateful_conf["cluster_list"][0]}',
+            # ALB-TargetGroupArn-dev-1, ALB-TargetGroupArn-prd-1, ...
         )
         aws_cdk.CfnOutput(
             self,
             id='CfnOutputTargetGroupArn-2',
             value=target_group_2.target_group_arn,
             description="ALB Target Group for cluster blue green",
-            export_name='ALB-TargetGroupArn-2'
+            export_name=f'ALB-TargetGroupArn-{self.flask_stateful_conf["cluster_list"][1]}',
+            # ALB-TargetGroupArn-dev-2, ALB-TargetGroupArn-prd-2, ...
         )
-        # # ↓ todo: delete
-        # aws_cdk.CfnOutput(
-        #     self,
-        #     id='CfnOutputTargetGroupArn-1-old',
-        #     value=target_group_1.target_group_arn,
-        #     description="ALB Target Group for cluster blue green",
-        #     # export_name='ALB-TargetGroupArn-1'
-        #     export_name=f'ALB-TargetGroupArn-1-{self.config.env.name}'  # todo: for blue-green refactoring 2022.07.07
-        # )
-        # aws_cdk.CfnOutput(
-        #     self,
-        #     id='CfnOutputTargetGroupArn-2-old',
-        #     value=target_group_2.target_group_arn,
-        #     description="ALB Target Group for cluster blue green",
-        #     # export_name='ALB-TargetGroupArn-2',
-        #     export_name=f'ALB-TargetGroupArn-2-{self.config.env.name}'  # todo: for blue-green refactoring 2022.07.07
-        # )
-        # # ↑ todo: delete
 
     def register_subdomain(self, alb: aws_elasticloadbalancingv2.ApplicationLoadBalancer):
         # Route53 Hosted ZoneにApplicationのA Recordを追加する。
@@ -210,24 +198,19 @@ class FlaskAppStatefulStack(Stack):
         hosted_zone = aws_route53.HostedZone.from_lookup(
             self,
             'ApexHostedZone',
-            domain_name=self.config.flask_app.apex_domain  # yamazon.tk
+            domain_name=self.flask_stateful_conf['apex_domain']  # yamazon.tk
         )
 
         record = aws_route53.ARecord(
             self,
             'AliasRecord',
-            record_name=self.config.flask_app.sub_domain,  # flask.yamazon.th
+            record_name=self.flask_stateful_conf['sub_domain'],  # flask.yamazon.th
             zone=hosted_zone,
-            # delete_existing=True,  # Documentにあるが指定できない！ 将来対応
+            # delete_existing=True,  # Documentにあるが2022.07時点指定不可！ 将来対応
+            # https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_route53/ARecord.html
             target=aws_route53.RecordTarget.from_alias(
                 aws_route53_targets.LoadBalancerTarget(alb))
         )
-
-        # Todo: 削除予定
-        # # record.node.default_child.override_logical_id(record.node.id)
-        # record.node.default_child.override_logical_id('OverrideExistingRecord')
-        # # Todo: これで上書きができるのか？
-        # # https://github.com/aws/aws-cdk/issues/12564
 
     def get_vpc_cross_stack(self):
         # Cross Stack Reference
@@ -235,20 +218,20 @@ class FlaskAppStatefulStack(Stack):
         vpc = aws_ec2.Vpc.from_vpc_attributes(
             self,
             'VpcId',
-            vpc_id=aws_cdk.Fn.import_value(f'VpcId-{self.config.vpc.name}'),
+            vpc_id=aws_cdk.Fn.import_value(f'VpcId-{self.vpc_conf["name"]}'),
             availability_zones=aws_cdk.Fn.split(
                 delimiter=',',
-                source=aws_cdk.Fn.import_value(f'AZs-{self.config.vpc.name}'),
+                source=aws_cdk.Fn.import_value(f'AZs-{self.vpc_conf["name"]}'),
                 assumed_length=3
             ),
             public_subnet_ids=aws_cdk.Fn.split(
                 delimiter=',',
-                source=aws_cdk.Fn.import_value(f'PublicSubnets-{self.config.vpc.name}'),
+                source=aws_cdk.Fn.import_value(f'PublicSubnets-{self.vpc_conf["name"]}'),
                 assumed_length=3
             ),
             private_subnet_ids=aws_cdk.Fn.split(
                 delimiter=',',
-                source=aws_cdk.Fn.import_value(f'PrivateSubnets-{self.config.vpc.name}'),
+                source=aws_cdk.Fn.import_value(f'PrivateSubnets-{self.vpc_conf["name"]}'),
                 assumed_length=3
             )
         )

@@ -3,9 +3,8 @@ from constructs import Construct
 from aws_cdk import aws_eks
 from aws_cdk import aws_ec2
 from aws_cdk import aws_iam
-from util.configure.config import Config
 from _constructs.eks.eks_addon_awslbctl import AwsLoadBalancerController
-from _constructs.eks.eks_addon_extdns import  ExternalDnsController
+from _constructs.eks.eks_addon_extdns import ExternalDnsController
 from _constructs.eks.eks_addon_cwmetrics import CloudWatchContainerInsightsMetrics
 from _constructs.eks.eks_addon_cwlogs import CloudWatchContainerInsightsLogs
 from _constructs.eks.eks_addon_argocd import ArgoCd
@@ -13,33 +12,40 @@ from _constructs.eks.eks_addon_argocd import ArgoCd
 
 class EksCluster(Construct):
 
-    def __init__(self, scope: Construct, id: str, config: Config) -> None:
+    def __init__(self,
+                 scope: Construct,
+                 id: str,
+                 vpc_config: dict,
+                 cluster_config: dict,
+                 aws_env: dict) -> None:
         super().__init__(scope, id)
 
-        self.config: Config = config
+        self.vpc_conf = vpc_config
+        self.cluster_conf = cluster_config
+        self.aws_env = aws_env
+
         self.cluster: aws_eks.Cluster = None
         self.vpc = self.get_vpc_cross_stack()
         self.vpc_id = self.get_vpc_id_cross_stack()
 
     def provisioning(self):
 
-        _owner_role = aws_iam.Role(
+        owner_role = aws_iam.Role(
             scope=self,
             id='EksClusterOwnerRole',
-            role_name=f'{self.config.env.name}EksClusterOwnerRole',
+            role_name=f'EksClusterOwnerRole-{self.cluster_conf["name"]}',  # EksClusterOwnerRole-dev-1
             assumed_by=aws_iam.AccountRootPrincipal())
 
         self.cluster = aws_eks.Cluster(
             self,
             'EksCluster',
-            cluster_name=self.config.eks.cluster_name,
-            # version=aws_eks.KubernetesVersion.V1_21,
-            version=aws_eks.KubernetesVersion.of(self.config.eks.cluster_version),  # 1.21, 1.22
+            cluster_name=self.cluster_conf['name'],
+            version=aws_eks.KubernetesVersion.of(self.cluster_conf['version']),  # 1.21, 1.22
             default_capacity_type=aws_eks.DefaultCapacityType.NODEGROUP,
             default_capacity=1,
-            default_capacity_instance=aws_ec2.InstanceType(self.config.eks.instance_type),
+            default_capacity_instance=aws_ec2.InstanceType(self.cluster_conf['instance_type']),
             vpc=self.vpc,
-            masters_role=_owner_role)
+            masters_role=owner_role)
 
         # CI/CDでClusterを作成する際、IAM Userでkubectlを実行する際に追加する。
         # kubectl commandを実行できるIAM Userを追加
@@ -49,7 +55,7 @@ class EksCluster(Construct):
         #         groups=['system:masters']
         # )
 
-        self.cluster_outputs_for_cross_stack()
+        self.cluster_outputs()
         self.deploy_addons()
 
     def deploy_addons(self):
@@ -63,53 +69,48 @@ class EksCluster(Construct):
 
         dependency = None
 
-        if self.config.eks.addon_awslbclt_enable:
+        if self.cluster_conf['addon_awslbclt_enable']:
             alb_ctl = AwsLoadBalancerController(
                 self,
                 'AwsLbController',
-                region=self.config.aws_env.region,
+                region=self.aws_env['region'],
                 cluster=self.cluster,
-                vpc_id=self.vpc.vpc_id)
+                vpc_id=self.vpc_id
+            )
             dependency = alb_ctl.deploy(dependency)
 
-        if self.config.eks.addon_extdns_enable:
+        if self.cluster_conf['addon_extdns_enable']:
             ext_dns = ExternalDnsController(
                 self,
                 'ExternalDNS',
-                region=self.config.aws_env.region,
+                region=self.aws_env['region'],
                 cluster=self.cluster)
             dependency = ext_dns.deploy(dependency)
 
-        if self.config.eks.addon_cwmetrics_enable:
+        if self.cluster_conf['addon_cwmetrics_enable']:
             insight_metrics = CloudWatchContainerInsightsMetrics(
                 self,
                 'CloudWatchInsightsMetrics',
-                region=self.config.aws_env.region,
+                region=self.aws_env['region'],
                 cluster=self.cluster)
             dependency = insight_metrics.deploy(dependency)
 
-        if self.config.eks.addon_cwlogs_enable:
+        if self.cluster_conf['addon_cwlogs_enable']:
             insight_logs = CloudWatchContainerInsightsLogs(
                 self,
                 'CloudWatchInsightLogs',
-                region=self.config.aws_env.region,
+                region=self.aws_env['region'],
                 cluster=self.cluster)
             dependency = insight_logs.deploy(dependency)
 
-        if self.config.eks.addon_argocd_enable:
-            argocd = ArgoCd(
-                self,
-                'ArgoCd',
-                region=self.config.aws_env.region,
-                cluster=self.cluster,
-                config=self.config
-            )
-            dependency = argocd.deploy(dependency)
-
-    def get_existing_vpc(self):
-        # 未使用
-        vpc = aws_ec2.Vpc.from_lookup(self, 'VPC1', vpc_name=self.config.vpc.name)
-        return vpc
+        # if self.cluster_conf['addon_argocd_enable']:
+        #     argocd = ArgoCd(
+        #         self,
+        #         'ArgoCd',
+        #         cluster=self.cluster,
+        #         cluster_config=self.cluster_conf,
+        #     )
+        #     dependency = argocd.deploy(dependency)
 
     def get_vpc_cross_stack(self):
         # (attention) from_vpc_attributesを使用する際、３つのAZがあることを前提とする。
@@ -117,56 +118,60 @@ class EksCluster(Construct):
         vpc = aws_ec2.Vpc.from_vpc_attributes(
             self,
             'VpcId',
-            vpc_id=aws_cdk.Fn.import_value(f'VpcId-{self.config.vpc.name}'),
+            vpc_id=aws_cdk.Fn.import_value(f'VpcId-{self.vpc_conf["name"]}'),
             availability_zones=aws_cdk.Fn.split(
                 delimiter=',',
-                source=aws_cdk.Fn.import_value(f'AZs-{self.config.vpc.name}'),
+                source=aws_cdk.Fn.import_value(f'AZs-{self.vpc_conf["name"]}'),
                 assumed_length=3
             ),
             public_subnet_ids=aws_cdk.Fn.split(
                 delimiter=',',
-                source=aws_cdk.Fn.import_value(f'PublicSubnets-{self.config.vpc.name}'),
+                source=aws_cdk.Fn.import_value(f'PublicSubnets-{self.vpc_conf["name"]}'),
                 assumed_length=3
             ),
             private_subnet_ids=aws_cdk.Fn.split(
                 delimiter=',',
-                source=aws_cdk.Fn.import_value(f'PrivateSubnets-{self.config.vpc.name}'),
+                source=aws_cdk.Fn.import_value(f'PrivateSubnets-{self.vpc_conf["name"]}'),
                 assumed_length=3
             )
         )
         return vpc
 
     def get_vpc_id_cross_stack(self):
-        vpc_id: str = aws_cdk.Fn.import_value(f'VpcId-{self.config.vpc.name}')  # VpcId-app-dev
+        vpc_id: str = aws_cdk.Fn.import_value(f'VpcId-{self.vpc_conf["name"]}')  # VpcId-dev
         return vpc_id
 
-    def cluster_outputs_for_cross_stack(self):
-        _env = self.config.env.name  # dev-1, dev-2, prd-1, prd-2
+    def cluster_outputs(self):
+
         aws_cdk.CfnOutput(
             self,
             id=f'CfnOutputClusterName',
-            value=self.cluster.cluster_name,
+            value=self.cluster_conf['name'],  # dev-1, dev-2, prd-1, prd-2
             description="Name of EKS Cluster",
-            export_name=f'EksClusterName-{_env}'
+            export_name=f'EksClusterName-{self.cluster_conf["name"]}'
+            # EksClusterName-dev-1, EksClusterName-dev-2,...
         )
         aws_cdk.CfnOutput(
             self,
             id=f'CfnOutputKubectlRoleArn',
             value=self.cluster.kubectl_role.role_arn,
             description="Kubectl Role Arn of EKS Cluster",
-            export_name=f'EksClusterKubectlRoleArn-{_env}'
+            export_name=f'EksClusterKubectlRoleArn-{self.cluster_conf["name"]}'
+            # EksClusterKubectlRoleArn-dev-1, EksClusterKubectlRoleArn-dev-2,...
         )
         aws_cdk.CfnOutput(
             self,
             id=f'CfnOutputKubectlSecurityGroupId',
             value=self.cluster.kubectl_security_group.security_group_id,
             description="Kubectl Security Group Id of EKS Cluster",
-            export_name=f'EksClusterKubectlSecurityGroupId-{_env}'
+            export_name=f'EksClusterKubectlSecurityGroupId-{self.cluster_conf["name"]}'
+            # EksClusterKubectlSecurityGroupId-dev-1, EksClusterKubectlSecurityGroupId-dev-2,...
         )
         aws_cdk.CfnOutput(
             self,
             id=f'CfnOutputOidcProviderArn',
             value=self.cluster.open_id_connect_provider.open_id_connect_provider_arn,
             description="OIDC Provider ARN of EKS Cluster",
-            export_name=f'EksClusterOidcProviderArn-{_env}'
+            export_name=f'EksClusterOidcProviderArn-{self.cluster_conf["name"]}'
+            # EksClusterOidcProviderArn-dev-1, EksClusterOidcProviderArn-dev-2,...
         )

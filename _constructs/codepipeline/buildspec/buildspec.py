@@ -1,4 +1,4 @@
-buildspec_object = {
+buildspec = {
     "version": "0.2",
     "env": {
         "exported-variables": ["VAR_CONTAINER_IMAGE_NAME", "VAR_CONTAINER_IMAGE_TAG"]

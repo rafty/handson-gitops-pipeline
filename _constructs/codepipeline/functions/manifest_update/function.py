@@ -20,12 +20,12 @@ def replace_image_tag(manifest, container_image_tag: str):
     return manifest
 
 
-def update_manifest(target_manifest, container_image_tag: str):
-    with open(target_manifest, 'r', encoding='utf-8') as f:
+def update_manifest(cd_manifest, container_image_tag: str):
+    with open(cd_manifest, 'r', encoding='utf-8') as f:
         manifest = yaml.safe_load(f)
         replaced_manifest = replace_image_tag(manifest, container_image_tag=container_image_tag)
 
-    with open(target_manifest, 'w', encoding='utf-8') as f:
+    with open(cd_manifest, 'w', encoding='utf-8') as f:
         yaml.dump(
             data=replaced_manifest,
             stream=f,
@@ -40,11 +40,11 @@ def get_secret(conf: dict) -> str:
 
 def github_manifest_update(conf: dict):
     loca_repo_path = '/tmp/repo'  # lambda local path
-    target_manifest = loca_repo_path + conf['github_target_manifest']
+    cd_manifest = loca_repo_path + conf['github_cd_manifest']
     github_personal_access_token = get_secret(conf=conf)  # From Amazon Secrets Manager
 
     local_repo = porcelain.clone(
-        source=conf['github_target_repository'],
+        source=conf['github_cd_repository'],
         branch=conf['github_branch'].encode('utf-8'),
         password=github_personal_access_token,
         username='not relevant',
@@ -54,10 +54,10 @@ def github_manifest_update(conf: dict):
 
     # update container image tag
     update_manifest(
-        target_manifest=target_manifest,
+        cd_manifest=cd_manifest,
         container_image_tag=conf['container_image_tag'])
 
-    porcelain.add(repo=local_repo, paths=target_manifest)
+    porcelain.add(repo=local_repo, paths=cd_manifest)
 
     author = 'aws-codepipeline-lambda <lambda@example.com>'
     porcelain.commit(
@@ -70,7 +70,7 @@ def github_manifest_update(conf: dict):
     # git push
     porcelain.push(
         repo=local_repo,
-        remote_location=conf['github_target_repository'],
+        remote_location=conf['github_cd_repository'],
         refspecs=conf['github_branch'].encode('utf-8'),
         password=github_personal_access_token,
         username='not relevant',
@@ -83,8 +83,8 @@ def extruct_user_parameters(event: dict) -> dict:
     job_data = event['CodePipeline.job']['data']
     user_parameters = json.loads(job_data['actionConfiguration']['configuration']['UserParameters'])
     conf = {
-        'github_target_repository': user_parameters['github_target_repository'],
-        'github_target_manifest': user_parameters['github_target_manifest'],
+        'github_cd_repository': user_parameters['github_cd_repository'],
+        'github_cd_manifest': user_parameters['github_cd_manifest'],
         'github_token_name': user_parameters['github_token_name'],
         'github_branch': user_parameters['github_branch'],  # master
         'container_image_tag': user_parameters['container_image_tag']['value']  # from Build Stage

@@ -1,7 +1,6 @@
 from passlib.context import CryptContext
 from constructs import Construct
 from aws_cdk import aws_eks
-from util.configure.config import Config
 import boto3
 
 
@@ -10,12 +9,16 @@ class ArgoCd(Construct):
     # Argo CD Helm Chart
     # https://artifacthub.io/packages/helm/argo/argo-cd
     # ----------------------------------------------------------
-    def __init__(self, scope: Construct, id: str, **kwargs) -> None:
+
+    def __init__(self,
+                 scope: Construct,
+                 id: str,
+                 cluster: aws_eks.Cluster,
+                 cluster_config: dict) -> None:
         super().__init__(scope, id)
 
-        self.region = kwargs.get('region')
-        self.cluster: aws_eks.Cluster = kwargs.get('cluster')
-        self.config: Config = kwargs.get('config')
+        self.cluster: aws_eks.Cluster = cluster
+        self.cluster_conf = cluster_config
 
         # Argo cd fixed value
         self.labels = {'app.kubernetes.io/name': 'argocd-server'}
@@ -33,7 +36,7 @@ class ArgoCd(Construct):
         # ----------------------------------------------------------------
         # Argo CD helm chart
         # ----------------------------------------------------------------
-        _argocd_helm_chart = self.cluster.add_helm_chart(
+        argocd_helm_chart = self.cluster.add_helm_chart(
             'ArgocdHelmChart',
             namespace=self.namespace,
             repository=self.repository,
@@ -49,9 +52,9 @@ class ArgoCd(Construct):
             }
         )
         if dependency is not None:
-            _argocd_helm_chart.node.add_dependency(dependency)
+            argocd_helm_chart.node.add_dependency(dependency)
 
-        dependency = self.add_alb_ingress_to_argocd(_argocd_helm_chart)
+        dependency = self.add_alb_ingress_to_argocd(argocd_helm_chart)
         return dependency
 
     def get_argocd_admin_password(self):
@@ -60,8 +63,10 @@ class ArgoCd(Construct):
         # ArgocdServerAdminPassword must be Bcrypt hashed password.
         # https://artifacthub.io/packages/helm/argo/argo-cd
         # ------------------------------------------------------
-        _secret_name = self.config.eks.addon_argocd_secret_name
-        secret_string = self.get_asm_value_by_awssdk(_secret_name)
+
+        secret_name = self.cluster_conf['addon_argocd_secret_name']
+        secret_string = self.get_asm_value_by_awssdk(secret_name)
+
         try:
             pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
             bcrypt_hashed = pwd_context.hash(secret_string)
@@ -78,7 +83,7 @@ class ArgoCd(Construct):
         secret_value = client.get_secret_value(SecretId=secret_name)
         try:
             secret_string = secret_value['SecretString']
-        except KeyError as e:
+        except KeyError:
             raise KeyError('must be set ASM:ArgocdServerAdminPassword')
         return secret_string
 
@@ -106,14 +111,14 @@ class ArgoCd(Construct):
                     'alb.ingress.kubernetes.io/healthcheck-protocol': 'HTTPS',
                     'alb.ingress.kubernetes.io/backend-protocol': 'HTTPS',
                     'alb.ingress.kubernetes.io/actions.ssl-redirect': '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}',
-                    'alb.ingress.kubernetes.io/certificate-arn': self.config.eks.addon_argocd_cert_arn,
-                    'external-dns.alpha.kubernetes.io/hostname': self.config.eks.addon_argocd_subdomain,
+                    'alb.ingress.kubernetes.io/certificate-arn': self.cluster_conf['addon_argocd_cert_arn'],
+                    'external-dns.alpha.kubernetes.io/hostname': self.cluster_conf['addon_argocd_subdomain'],
                 },
             },
             'spec': {
                 'rules': [
                     {
-                        'host': self.config.eks.addon_argocd_subdomain,
+                        'host': self.cluster_conf['addon_argocd_subdomain'],
                         'http': {
                             'paths': [
                                 {

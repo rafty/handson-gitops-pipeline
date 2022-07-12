@@ -8,12 +8,16 @@ class ExternalDnsController(Construct):
     # ExternalDNS
     # ExternalDNSは TLS証明書持つALBのレコードをR53に登録する
     # ----------------------------------------------------------
-    def __init__(self, scope: Construct, id: str, **kwargs) -> None:
+    def __init__(self,
+                 scope: Construct,
+                 id: str,
+                 region: str,
+                 cluster: aws_eks.Cluster,
+                 **kwargs) -> None:
         super().__init__(scope, id)
 
-        self.check_parameter(kwargs)
-        self.region: str = kwargs.get('region')
-        self.cluster: aws_eks = kwargs.get('cluster')
+        self.region = region
+        self.cluster: aws_eks.Cluster = cluster
 
     def deploy(self, dependency: Construct) -> Construct:
         # External DNS Controller sets A-Record in the Hosted Zone of Route 53.
@@ -86,12 +90,3 @@ class ExternalDnsController(Construct):
         external_dns_chart.node.add_dependency(external_dns_service_account)
 
         return external_dns_chart
-
-    @staticmethod
-    def check_parameter(key):
-        if type(key.get('region')) is not str:
-            raise TypeError('Must be set region.')
-        if key.get('region') == '':
-            raise TypeError('Must be set region.')
-        if type(key.get('cluster')) is not aws_eks.Cluster:
-            raise TypeError('Must be set Cluster.')
