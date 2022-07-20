@@ -244,7 +244,7 @@ class FlaskAppStack(Stack):
                             'ports': [
                                 {
                                     'protocol': 'TCP',
-                                    # 'port': 80  # cooment out: Allow all TCP traffic from ALB SG
+                                    # 'port': 80  # comment out: Allow all TCP traffic from ALB SG
                                 }
                             ]
                         }

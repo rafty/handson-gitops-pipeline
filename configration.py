@@ -54,9 +54,6 @@ codepipeline_stack_configuration = {
     'github_source_repository_name': ci_repository_name,
     'github_owner': github_owner,
     'github_cd_repository': cd_repository,
-    # 'github_cd_manifest_dev': '/dev/deployment.yaml',  # Todo: configration.pyに無い！ ファイル名を一つにすること！
-    # 'github_cd_manifest_stg': '/stg/deployment.yaml',
-    # 'github_cd_manifest_prd': '/prd/deployment.yaml',
     'github_cd_target_manifest': 'deployment.yaml',
     'ecr_repository_name': 'flask'
 }
@@ -183,7 +180,7 @@ prd_env_configuration = {
         'service_account': 'flask',
         'repo': cd_repository,
         'repo_path': '.',
-        'repo_branch': 'dev',
+        'repo_branch': 'prd',
     },
     'flask-2': {
         'env': 'prd',
@@ -193,6 +190,6 @@ prd_env_configuration = {
         'service_account': 'flask',
         'repo': cd_repository,
         'repo_path': '.',
-        'repo_branch': 'dev',
+        'repo_branch': 'prd',
     },
 }
