@@ -103,14 +103,16 @@ class EksCluster(Construct):
                 cluster=self.cluster)
             dependency = insight_logs.deploy(dependency)
 
-        # if self.cluster_conf['addon_argocd_enable']:
-        #     argocd = ArgoCd(
-        #         self,
-        #         'ArgoCd',
-        #         cluster=self.cluster,
-        #         cluster_config=self.cluster_conf,
-        #     )
-        #     dependency = argocd.deploy(dependency)
+        # Todo: ↓ comment out & cdk deploy before deleting stack (cdk destroy)
+        if self.cluster_conf['addon_argocd_enable']:
+            argocd = ArgoCd(
+                self,
+                'ArgoCd',
+                cluster=self.cluster,
+                cluster_config=self.cluster_conf,
+            )
+            dependency = argocd.deploy(dependency)
+        # Todo: ↑ comment out & cdk deploy before deleting stack (cdk destroy)
 
     def get_vpc_cross_stack(self):
         # (attention) from_vpc_attributesを使用する際、３つのAZがあることを前提とする。

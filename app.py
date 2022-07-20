@@ -79,76 +79,76 @@ flask_app_stack_dev_1 = FlaskAppStack(
     env=env)
 flask_app_stack_dev_1.add_dependency(eks_cluster_stack_dev_1)
 
-# ------------------------------------------------------
-# for Dev environment - 2
-# ------------------------------------------------------
-eks_cluster_stack_dev_2 = EksClusterStack(
-    app,
-    "EksClusterStack-dev-2",
-    vpc_config=dev_env_configuration['vpc'],
-    cluster_config=dev_env_configuration['cluster-2'],
-    env=env)
-eks_cluster_stack_dev_2.add_dependency(flask_app_stack_dev_1)
-
-flask_app_stack_dev_2 = FlaskAppStack(
-    app,
-    "FlaskAppStack-dev-2",
-    vpc_config=dev_env_configuration['vpc'],
-    cluster_config=dev_env_configuration['cluster-2'],
-    flask_config=dev_env_configuration['flask-2'],
-    env=env)
-flask_app_stack_dev_2.add_dependency(eks_cluster_stack_dev_2)
+# # ------------------------------------------------------
+# # for Dev environment - 2
+# # ------------------------------------------------------
+# eks_cluster_stack_dev_2 = EksClusterStack(
+#     app,
+#     "EksClusterStack-dev-2",
+#     vpc_config=dev_env_configuration['vpc'],
+#     cluster_config=dev_env_configuration['cluster-2'],
+#     env=env)
+# eks_cluster_stack_dev_2.add_dependency(flask_app_stack_dev_1)
+#
+# flask_app_stack_dev_2 = FlaskAppStack(
+#     app,
+#     "FlaskAppStack-dev-2",
+#     vpc_config=dev_env_configuration['vpc'],
+#     cluster_config=dev_env_configuration['cluster-2'],
+#     flask_config=dev_env_configuration['flask-2'],
+#     env=env)
+# flask_app_stack_dev_2.add_dependency(eks_cluster_stack_dev_2)
+#
+#
+# """
+# Production Environment
+# """
+#
+# # ------------------------------------------------------
+# # VPC for Prd environment
+# # ------------------------------------------------------
+# vpc_stack_prd = VpcStack(
+#     app,
+#     "EksVpcStack-prd",
+#     vpc_config=prd_env_configuration['vpc'],
+#     env=env)
+# vpc_stack_prd.node.add_dependency(flask_app_stack_dev_2)
+#
+# # ------------------------------------------------------
+# # Prd Stateful AWS Resource for App
+# #   本Stackは1つのAWS Accountで、dev-1, dev-2のClusterが共通で
+# #   利用するStatefulなリソースを構築する
+# # ------------------------------------------------------
+# flask_app_stateful_stack_prd = FlaskAppStatefulStack(
+#     app,
+#     "FlaskAppStatefulStack-Prd",
+#     vpc_config=prd_env_configuration['vpc'],
+#     flask_stateful_config=prd_env_configuration['flask-stateful'],
+#     env=env)
+# flask_app_stateful_stack_prd.add_dependency(vpc_stack_prd)
+#
+# # ------------------------------------------------------
+# # for Prod environment
+# # ------------------------------------------------------
+# eks_cluster_stack_prd_1 = EksClusterStack(
+#     app,
+#     "EksClusterStack-prd-1",
+#     vpc_config=prd_env_configuration['vpc'],
+#     cluster_config=prd_env_configuration['cluster-1'],
+#     env=env)
+# eks_cluster_stack_prd_1.add_dependency(flask_app_stateful_stack_prd)
+#
+# flask_app_stack_prd_1 = FlaskAppStack(
+#     app,
+#     "FlaskAppStack-prd-1",
+#     vpc_config=prd_env_configuration['vpc'],
+#     cluster_config=prd_env_configuration['cluster-1'],
+#     flask_config=prd_env_configuration['flask-1'],
+#     env=env)
+# flask_app_stack_prd_1.add_dependency(eks_cluster_stack_prd_1)
 
 
 """
-Production Environment
-"""
+cdk synth()"""
 
-# ------------------------------------------------------
-# VPC for Prd environment
-# ------------------------------------------------------
-vpc_stack_prd = VpcStack(
-    app,
-    "EksVpcStack-prd",
-    vpc_config=prd_env_configuration['vpc'],
-    env=env)
-vpc_stack_prd.node.add_dependency(flask_app_stack_dev_2)
-
-# ------------------------------------------------------
-# Prd Stateful AWS Resource for App
-#   本Stackは1つのAWS Accountで、dev-1, dev-2のClusterが共通で
-#   利用するStatefulなリソースを構築する
-# ------------------------------------------------------
-flask_app_stateful_stack_prd = FlaskAppStatefulStack(
-    app,
-    "FlaskAppStatefulStack-Prd",
-    vpc_config=prd_env_configuration['vpc'],
-    flask_stateful_config=prd_env_configuration['flask-stateful'],
-    env=env)
-flask_app_stateful_stack_prd.add_dependency(vpc_stack_prd)
-
-# ------------------------------------------------------
-# for Prod environment
-# ------------------------------------------------------
-eks_cluster_stack_prd_1 = EksClusterStack(
-    app,
-    "EksClusterStack-prd-1",
-    vpc_config=prd_env_configuration['vpc'],
-    cluster_config=prd_env_configuration['cluster-1'],
-    env=env)
-eks_cluster_stack_prd_1.add_dependency(flask_app_stateful_stack_prd)
-
-flask_app_stack_prd_1 = FlaskAppStack(
-    app,
-    "FlaskAppStack-prd-1",
-    vpc_config=prd_env_configuration['vpc'],
-    cluster_config=prd_env_configuration['cluster-1'],
-    flask_config=prd_env_configuration['flask-1'],
-    env=env)
-flask_app_stack_prd_1.add_dependency(eks_cluster_stack_prd_1)
-
-
-# ------------------------------------------------------
-# cdk synth()
-# ------------------------------------------------------
 app.synth()

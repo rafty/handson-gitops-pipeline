@@ -23,6 +23,7 @@ class TagUpdateAction(Construct):
         self.function = function
         self.container_image_tag = container_info.get('container_image_tag')  # from Build Stage
         self.github_cd_repository = cd_manifest_info.get('github_cd_repository')
+        self.github_cd_branch = cd_manifest_info.get('github_cd_branch')
         self.github_cd_manifest = cd_manifest_info.get('github_cd_manifest')
         self.github_token_name = cd_manifest_info.get('github_token_name')
 
@@ -35,7 +36,7 @@ class TagUpdateAction(Construct):
             user_parameters={
                 'github_cd_repository': self.github_cd_repository,
                 'github_cd_manifest': self.github_cd_manifest,
-                'github_branch': 'master',
+                'github_branch': self.github_cd_branch,
                 'github_token_name': self.github_token_name,
                 'container_image_tag': self.container_image_tag,  # from Build Stage
             },

@@ -106,7 +106,8 @@ class CodepipelineStack(Stack):
         }
         cd_manifest_info = {
             'github_cd_repository': config['github_cd_repository'],
-            'github_cd_manifest': config['github_cd_manifest_dev'],
+            'github_cd_branch': 'dev',
+            'github_cd_manifest': config['github_cd_target_manifest'],
             'github_token_name': config['github_token_name'],
         }
         tag_update = TagUpdateAction(
@@ -145,7 +146,8 @@ class CodepipelineStack(Stack):
         # ------------------------------------------------------------
         cd_manifest_info = {
             'github_cd_repository': config['github_cd_repository'],
-            'github_cd_manifest': config['github_cd_manifest_prd'],
+            'github_cd_branch': 'prd',
+            'github_cd_manifest': config['github_cd_target_manifest'],
             'github_token_name': config['github_token_name'],
         }
         tag_update = TagUpdateAction(

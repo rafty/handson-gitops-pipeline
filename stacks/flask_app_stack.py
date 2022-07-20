@@ -172,7 +172,8 @@ class FlaskAppStack(Stack):
         application_name = self.flask_conf['name']  # flask
         application_namespace = self.flask_conf['namespace']  # flask
         repo = self.flask_conf['repo']
-        repo_path = self.flask_conf['repo_path']  # prd/
+        repo_path = self.flask_conf['repo_path']
+        branch = self.flask_conf['repo_branch']
 
         flask_app_manifest = {
             'apiVersion': 'argoproj.io/v1alpha1',
@@ -185,7 +186,7 @@ class FlaskAppStack(Stack):
                 'project': 'default',
                 'source': {
                     'repoURL': repo,
-                    'targetRevision': 'HEAD',
+                    'targetRevision': branch,
                     'path': repo_path
                 },
                 'destination': {

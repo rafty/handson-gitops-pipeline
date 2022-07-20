@@ -32,8 +32,8 @@ class TestAction(Construct):
 
         test_project = aws_codebuild.PipelineProject(
             self,
-            id='pytest_project',
-            project_name='pytest_project',
+            id='flask_project',
+            project_name='flask_project',
             environment=aws_codebuild.BuildEnvironment(
                 build_image=aws_codebuild.LinuxBuildImage.STANDARD_4_0,
                 privileged=True  # for docker build

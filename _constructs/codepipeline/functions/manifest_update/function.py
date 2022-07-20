@@ -39,13 +39,16 @@ def get_secret(conf: dict) -> str:
 
 
 def github_manifest_update(conf: dict):
-    loca_repo_path = '/tmp/repo'  # lambda local path
-    cd_manifest = loca_repo_path + conf['github_cd_manifest']
+    logger.info(f'github_manifest_update() - conf: {conf}')
+    loca_repo_path = '/tmp/repo/'  # lambda local path
+    cd_manifest = loca_repo_path + conf['github_cd_manifest']  # Todo: configration.pyに無い！
     github_personal_access_token = get_secret(conf=conf)  # From Amazon Secrets Manager
 
+    # git clone
+    logger.info('porcelain.clone()')
     local_repo = porcelain.clone(
         source=conf['github_cd_repository'],
-        branch=conf['github_branch'].encode('utf-8'),
+        branch=conf['github_branch'].encode('utf-8'),  # Todo: now
         password=github_personal_access_token,
         username='not relevant',
         target=loca_repo_path,
@@ -59,6 +62,8 @@ def github_manifest_update(conf: dict):
 
     porcelain.add(repo=local_repo, paths=cd_manifest)
 
+    # git commit
+    logger.info('porcelain.commit()')
     author = 'aws-codepipeline-lambda <lambda@example.com>'
     porcelain.commit(
         repo=local_repo,
@@ -68,6 +73,7 @@ def github_manifest_update(conf: dict):
     )
 
     # git push
+    logger.info('porcelain.push()')
     porcelain.push(
         repo=local_repo,
         remote_location=conf['github_cd_repository'],
@@ -80,13 +86,15 @@ def github_manifest_update(conf: dict):
 
 
 def extruct_user_parameters(event: dict) -> dict:
+    logger.info(f'extruct_user_parameters() - event: {event}')
     job_data = event['CodePipeline.job']['data']
     user_parameters = json.loads(job_data['actionConfiguration']['configuration']['UserParameters'])
     conf = {
         'github_cd_repository': user_parameters['github_cd_repository'],
+        # 'github_cd_manifest': user_parameters['github_cd_manifest'],  # Todo: now
         'github_cd_manifest': user_parameters['github_cd_manifest'],
         'github_token_name': user_parameters['github_token_name'],
-        'github_branch': user_parameters['github_branch'],  # master
+        'github_branch': user_parameters['github_branch'],  # master  # Todo: now  master -> dev, stg, prd
         'container_image_tag': user_parameters['container_image_tag']['value']  # from Build Stage
     }
     return conf
