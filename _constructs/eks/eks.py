@@ -115,8 +115,10 @@ class EksCluster(Construct):
         # Todo: ↑ comment out & cdk deploy before deleting stack (cdk destroy)
 
     def get_vpc_cross_stack(self):
-        # (attention) from_vpc_attributesを使用する際、３つのAZがあることを前提とする。
-        #             Cfn Templateを作成する際、AZの数が決定されてなければならない。
+        """(attention)
+            from_vpc_attributesを使用する際、３つのAZがあることを前提とする。
+            Cfn Templateを作成する際、AZの数が決定されてなければならない。"""
+
         vpc = aws_ec2.Vpc.from_vpc_attributes(
             self,
             'VpcId',

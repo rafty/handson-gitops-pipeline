@@ -32,9 +32,9 @@ codepipeline_stack_flask = CodepipelineStack(
     config=codepipeline_stack_configuration,
     env=env)
 
-"""
-Develop Environment
-"""
+# """
+# Develop Environment
+# """
 
 # ------------------------------------------------------
 # VPC for Dev environment
@@ -113,6 +113,7 @@ vpc_stack_prd = VpcStack(
     vpc_config=prd_env_configuration['vpc'],
     env=env)
 vpc_stack_prd.node.add_dependency(flask_app_stack_dev_2)
+
 
 # ------------------------------------------------------
 # Prd Stateful AWS Resource for App

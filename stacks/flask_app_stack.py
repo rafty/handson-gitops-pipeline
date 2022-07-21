@@ -168,6 +168,9 @@ class FlaskAppStack(Stack):
         return argocd_app  # dependency
 
     def argocd_application_manifest(self):
+        """Argo CDに登録するArgo CD アプリケーションのmanifest
+           Flask Appを対象とする。
+        """
         argocd_namespace = 'argocd'
         application_name = self.flask_conf['name']  # flask
         application_namespace = self.flask_conf['namespace']  # flask
@@ -191,7 +194,7 @@ class FlaskAppStack(Stack):
                 },
                 'destination': {
                     'server': 'https://kubernetes.default.svc',
-                    # ArgoCDが動作するClusterにAppをDeployする際のurl
+                    # ArgoCDとPodが動作するEKS Clusterが同じであればこのurlを指定する
                     'namespace': application_namespace
                 },
                 'syncPolicy': {
@@ -202,15 +205,19 @@ class FlaskAppStack(Stack):
         return flask_app_manifest
 
     def application_target_group_binding(self, dependency):
-        # AWS Load Balancer Controller - TargetGroupBinding
-        # ALB TargetGroupのTargetにk8s serviceを登録する
-        # see more information:
-        # https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/guide/targetgroupbinding/targetgroupbinding/
-        # targetGroupARN: ALBのTargetGroup, 環境毎にBule, Green用に２つ作成
-        # - ALB-TargetGroupArn-dev-1
-        # - ALB-TargetGroupArn-dev-2
-        # - ALB-TargetGroupArn-prd-1
-        # - ALB-TargetGroupArn-prd-2
+        """AWS Load Balancer Controller - TargetGroupBinding
+           ALB TargetGroupのTargetにk8s serviceを登録する
+           see more information:
+           https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/guide/targetgroupbinding/targetgroupbinding/
+
+           targetGroupARN: ALBのTargetGroup, 環境毎にBule, Green用に２つ作成
+            - ALB-TargetGroupArn-dev-1
+            - ALB-TargetGroupArn-dev-2
+            - ALB-TargetGroupArn-stg-1
+            - ALB-TargetGroupArn-stg-2
+            - ALB-TargetGroupArn-prd-1
+            - ALB-TargetGroupArn-prd-2
+        """
 
         service_name = self.flask_conf['name']
         namespace = self.flask_conf['namespace']
@@ -229,7 +236,7 @@ class FlaskAppStack(Stack):
                 },
                 'targetGroupARN': aws_cdk.Fn.import_value(
                     f'ALB-TargetGroupArn-{self.flask_conf["eks_cluster"]}'),
-                # ALB-TargetGroupArn-dev-1, ALB-TargetGroupArn-dev-2, ...
+                # e.g. ALB-TargetGroupArn-dev-1, ALB-TargetGroupArn-dev-2, ...
                 'networking': {
                     'ingress': [
                         {
